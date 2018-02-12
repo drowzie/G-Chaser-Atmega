@@ -38,7 +38,7 @@ void spi_init()
 }
 
 void spi_sync (uint8_t * dataout, uint8_t * datain, uint8_t len) 
- // Shift full array through target device
+ // Shift full array(8 bits data) through target device
 {
        uint8_t i;
        for (i = 0; i < len; i++) {
@@ -49,7 +49,9 @@ void spi_sync (uint8_t * dataout, uint8_t * datain, uint8_t len)
 }
 
 
-// I2C change when needed....
+// Så langt en kopi av I2C, ikke helt funksjonerbart med LTC4151
+
+
 uint8_t i2c_start(uint8_t address)
 {
 	// reset TWI control register
