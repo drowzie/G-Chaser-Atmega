@@ -2,13 +2,15 @@
  * comm.c
  *  Author: chris
  */ 
+#include <stdint.h>
 #include "comm.h"
 #include <avr/io.h>
 #include <util/twi.h>
-#include <>
-// SPI defines
+
+
+// SPI defines - Not all ports are correctly set...
 #define PORT_SPI	PORTB // PORTB
-#define DDR_SPI		DDRB  // 
+#define DDR_SPI		DDRB  // Velger hele DDRB
 #define DD_MISO		DDB4  // Master input
 #define DD_MOSI		DDB3  // Master output
 #define DD_SS		DDB2  // Slave select
@@ -37,8 +39,8 @@ void spi_init()
 	SPSR = (1<<SPI2X);  // Double Clock Rate
 }
 
-void spi_sync (uint8_t * dataout, uint8_t * datain, uint8_t len) 
  // Shift full array(8 bits data) through target device
+void spiSync(uint8_t * dataout, uint8_t * datain, uint8_t len) 
 {
        uint8_t i;
        for (i = 0; i < len; i++) {
@@ -49,21 +51,22 @@ void spi_sync (uint8_t * dataout, uint8_t * datain, uint8_t len)
 }
 
 
-// Så langt en kopi av I2C, ikke helt funksjonerbart med LTC4151
+// Så langt en kopi av databladet til Atmega 2560
 
 
 uint8_t i2c_start(uint8_t address)
 {
+	// I2C example taken  from ATMEGA 2560
+	// 1<<TWINT clears the interrupt
 	// reset TWI control register
 	TWCR = 0;
 	// transmit START condition
 	TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
-	// wait for end of transmission
+	// wait for TWINT Flag set.
 	while( !(TWCR & (1<<TWINT)) );
-	
 	// check if the start condition was successfully transmitted
 	if((TWSR & 0xF8) != TW_START){ return 1; }
-	
+		
 	// load slave address into data register
 	TWDR = address;
 	// start transmission of address
@@ -114,9 +117,10 @@ uint8_t i2c_read_nack(void)
 	return TWDR;
 }
 
+
 uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length)
 {
-	if (i2c_start(address | I2C_WRITE)) return 1;
+	if (i2c_start(address | I2C_WRITE)) return 1; // I2c fails, break transmit...
 	
 	for (uint16_t i = 0; i < length; i++)
 	{
@@ -136,6 +140,7 @@ uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 	{
 		data[i] = i2c_read_ack();
 	}
+	
 	data[(length-1)] = i2c_read_nack();
 	
 	i2c_stop();

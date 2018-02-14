@@ -3,29 +3,29 @@ KommunikasjonsProtokoll.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .data         00000000  00800200  00800200  00000170  2**0
+  0 .data         00000000  00800200  00800200  000001be  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  1 .text         0000011c  00000000  00000000  00000054  2**1
+  1 .text         0000016a  00000000  00000000  00000054  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .comment      00000030  00000000  00000000  00000170  2**0
+  2 .comment      00000030  00000000  00000000  000001be  2**0
                   CONTENTS, READONLY
-  3 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  000001a0  2**2
+  3 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  000001f0  2**2
                   CONTENTS, READONLY
-  4 .debug_aranges 00000048  00000000  00000000  000001e0  2**0
+  4 .debug_aranges 00000090  00000000  00000000  00000230  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_info   00000d36  00000000  00000000  00000228  2**0
+  5 .debug_info   000010c8  00000000  00000000  000002c0  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 00000c1e  00000000  00000000  00000f5e  2**0
+  6 .debug_abbrev 00000d18  00000000  00000000  00001388  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   00000335  00000000  00000000  00001b7c  2**0
+  7 .debug_line   000005ad  00000000  00000000  000020a0  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_frame  00000058  00000000  00000000  00001eb4  2**2
+  8 .debug_frame  00000190  00000000  00000000  00002650  2**2
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_str    00000572  00000000  00000000  00001f0c  2**0
+  9 .debug_str    0000061d  00000000  00000000  000027e0  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    00000073  00000000  00000000  0000247e  2**0
+ 10 .debug_loc    0000072b  00000000  00000000  00002dfd  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_ranges 00000028  00000000  00000000  000024f1  2**0
+ 11 .debug_ranges 000000a0  00000000  00000000  00003528  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -155,59 +155,123 @@ Disassembly of section .text:
   ee:	cd bf       	out	0x3d, r28	; 61
   f0:	00 e0       	ldi	r16, 0x00	; 0
   f2:	0c bf       	out	0x3c, r16	; 60
-  f4:	0d d0       	rcall	.+26     	; 0x110 <main>
-  f6:	10 c0       	rjmp	.+32     	; 0x118 <_exit>
+  f4:	32 d0       	rcall	.+100    	; 0x15a <main>
+  f6:	37 c0       	rjmp	.+110    	; 0x166 <_exit>
 
 000000f8 <__bad_interrupt>:
   f8:	83 cf       	rjmp	.-250    	; 0x0 <__vectors>
 
 000000fa <spi_init>:
 
-
-void spi_init()
+ // Shift full array(8 bits data) through target device
+void spiSync(uint8_t * dataout, uint8_t * datain, uint8_t len) 
 {
-	// Reset pins
-	DDR_SPI &= ~((1<<DD_MOSI)|(1<<DD_MISO)|(1<<DD_SS)|(1<<DD_SCK));
+       uint8_t i;
+       for (i = 0; i < len; i++) {
   fa:	84 b1       	in	r24, 0x04	; 4
   fc:	83 7c       	andi	r24, 0xC3	; 195
   fe:	84 b9       	out	0x04, r24	; 4
-	// Output
-	DDR_SPI |= ((1<<DD_MOSI)|(1<<DD_SS)|(1<<DD_SCK));
  100:	84 b1       	in	r24, 0x04	; 4
  102:	8c 62       	ori	r24, 0x2C	; 44
  104:	84 b9       	out	0x04, r24	; 4
-	
-	SPCR = ((1<<SPE)| // ENABLE
  106:	81 e5       	ldi	r24, 0x51	; 81
  108:	8c bd       	out	0x2c, r24	; 44
-			(1<<MSTR)| //Master/slave sel
-			(0<<SPR1)|(1<<SPR0)| // Spi clock rate
-			(0<<CPOL)| // Clock polarity
-			(0<<CPHA)); // Clock phase
-			
-	SPSR = (1<<SPI2X);  // Double Clock Rate
  10a:	81 e0       	ldi	r24, 0x01	; 1
  10c:	8d bd       	out	0x2d, r24	; 45
  10e:	08 95       	ret
 
-00000110 <main>:
-#include "comm.h"
+00000110 <i2c_start>:
+uint8_t i2c_start(uint8_t address)
+{
+	// I2C example taken  from ATMEGA 2560
+	// 1<<TWINT clears the interrupt
+	// reset TWI control register
+	TWCR = 0;
+ 110:	ec eb       	ldi	r30, 0xBC	; 188
+ 112:	f0 e0       	ldi	r31, 0x00	; 0
+ 114:	10 82       	st	Z, r1
+	// transmit START condition
+	TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
+ 116:	94 ea       	ldi	r25, 0xA4	; 164
+ 118:	90 83       	st	Z, r25
+	// wait for TWINT Flag set.
+	while( !(TWCR & (1<<TWINT)) );
+ 11a:	90 81       	ld	r25, Z
+ 11c:	99 23       	and	r25, r25
+ 11e:	ec f7       	brge	.-6      	; 0x11a <i2c_start+0xa>
+	// check if the start condition was successfully transmitted
+	if((TWSR & 0xF8) != TW_START){ return 1; }
+ 120:	90 91 b9 00 	lds	r25, 0x00B9	; 0x8000b9 <__TEXT_REGION_LENGTH__+0x7000b9>
+ 124:	98 7f       	andi	r25, 0xF8	; 248
+ 126:	98 30       	cpi	r25, 0x08	; 8
+ 128:	a1 f4       	brne	.+40     	; 0x152 <i2c_start+0x42>
+		
+	// load slave address into data register
+	TWDR = address;
+ 12a:	80 93 bb 00 	sts	0x00BB, r24	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7000bb>
+	// start transmission of address
+	TWCR = (1<<TWINT) | (1<<TWEN);
+ 12e:	84 e8       	ldi	r24, 0x84	; 132
+ 130:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7000bc>
+	// wait for end of transmission
+	while( !(TWCR & (1<<TWINT)) );
+ 134:	ec eb       	ldi	r30, 0xBC	; 188
+ 136:	f0 e0       	ldi	r31, 0x00	; 0
+ 138:	80 81       	ld	r24, Z
+ 13a:	88 23       	and	r24, r24
+ 13c:	ec f7       	brge	.-6      	; 0x138 <i2c_start+0x28>
+	
+	// check if the device has acknowledged the READ / WRITE mode
+	uint8_t twst = TW_STATUS & 0xF8;
+ 13e:	90 91 b9 00 	lds	r25, 0x00B9	; 0x8000b9 <__TEXT_REGION_LENGTH__+0x7000b9>
+ 142:	98 7f       	andi	r25, 0xF8	; 248
+	if ( (twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK) ) return 1;
+ 144:	98 31       	cpi	r25, 0x18	; 24
+ 146:	39 f0       	breq	.+14     	; 0x156 <i2c_start+0x46>
+	// transmit START condition
+	TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
+	// wait for TWINT Flag set.
+	while( !(TWCR & (1<<TWINT)) );
+	// check if the start condition was successfully transmitted
+	if((TWSR & 0xF8) != TW_START){ return 1; }
+ 148:	81 e0       	ldi	r24, 0x01	; 1
+ 14a:	90 34       	cpi	r25, 0x40	; 64
+ 14c:	29 f4       	brne	.+10     	; 0x158 <i2c_start+0x48>
+ 14e:	80 e0       	ldi	r24, 0x00	; 0
+ 150:	08 95       	ret
+ 152:	81 e0       	ldi	r24, 0x01	; 1
+ 154:	08 95       	ret
+	
+	// check if the device has acknowledged the READ / WRITE mode
+	uint8_t twst = TW_STATUS & 0xF8;
+	if ( (twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK) ) return 1;
+	
+	return 0;
+ 156:	80 e0       	ldi	r24, 0x00	; 0
+}
+ 158:	08 95       	ret
+
+0000015a <main>:
+
 
 int main(void)
 {
     /* Replace with your application code */
 	spi_init();
- 110:	f4 df       	rcall	.-24     	; 0xfa <spi_init>
+ 15a:	cf df       	rcall	.-98     	; 0xfa <spi_init>
 	
+	i2c_start(U7_ADDR);
+ 15c:	82 ed       	ldi	r24, 0xD2	; 210
+ 15e:	d8 df       	rcall	.-80     	; 0x110 <i2c_start>
 	
 return 0;
 }
- 112:	80 e0       	ldi	r24, 0x00	; 0
- 114:	90 e0       	ldi	r25, 0x00	; 0
- 116:	08 95       	ret
+ 160:	80 e0       	ldi	r24, 0x00	; 0
+ 162:	90 e0       	ldi	r25, 0x00	; 0
+ 164:	08 95       	ret
 
-00000118 <_exit>:
- 118:	f8 94       	cli
+00000166 <_exit>:
+ 166:	f8 94       	cli
 
-0000011a <__stop_program>:
- 11a:	ff cf       	rjmp	.-2      	; 0x11a <__stop_program>
+00000168 <__stop_program>:
+ 168:	ff cf       	rjmp	.-2      	; 0x168 <__stop_program>
