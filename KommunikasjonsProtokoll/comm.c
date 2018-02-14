@@ -8,6 +8,7 @@
 #include <util/twi.h>
 
 
+
 // SPI defines - Not all ports are correctly set...
 #define PORT_SPI	PORTB // PORTB
 #define DDR_SPI		DDRB  // Velger hele DDRB
@@ -20,7 +21,7 @@
 #define I2C_READ 0x01
 #define I2C_WRITE 0x00
 
-
+@// cyja 
 void spi_init()
 {
 	// Reset pins
