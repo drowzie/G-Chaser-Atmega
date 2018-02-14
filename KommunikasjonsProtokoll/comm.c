@@ -21,7 +21,7 @@
 #define I2C_READ 0x01
 #define I2C_WRITE 0x00
 
-@// cyja 
+
 void spi_init()
 {
 	// Reset pins

@@ -13,19 +13,19 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY
   4 .debug_aranges 00000090  00000000  00000000  00000230  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_info   000010c8  00000000  00000000  000002c0  2**0
+  5 .debug_info   000010cc  00000000  00000000  000002c0  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 00000d18  00000000  00000000  00001388  2**0
+  6 .debug_abbrev 00000d1a  00000000  00000000  0000138c  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   000005ad  00000000  00000000  000020a0  2**0
+  7 .debug_line   000005ad  00000000  00000000  000020a6  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_frame  00000190  00000000  00000000  00002650  2**2
+  8 .debug_frame  00000190  00000000  00000000  00002654  2**2
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_str    0000061d  00000000  00000000  000027e0  2**0
+  9 .debug_str    0000061d  00000000  00000000  000027e4  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    0000072b  00000000  00000000  00002dfd  2**0
+ 10 .debug_loc    0000072b  00000000  00000000  00002e01  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_ranges 000000a0  00000000  00000000  00003528  2**0
+ 11 .debug_ranges 000000a0  00000000  00000000  0000352c  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -252,21 +252,20 @@ uint8_t i2c_start(uint8_t address)
  158:	08 95       	ret
 
 0000015a <main>:
+#define control					0x06
 
 
 int main(void)
 {
-    /* Replace with your application code */
-	spi_init();
- 15a:	cf df       	rcall	.-98     	; 0xfa <spi_init>
-	
-	i2c_start(U7_ADDR);
- 15c:	82 ed       	ldi	r24, 0xD2	; 210
- 15e:	d8 df       	rcall	.-80     	; 0x110 <i2c_start>
-	
+i2c_start(U7_ADDR);
+ 15a:	82 ed       	ldi	r24, 0xD2	; 210
+ 15c:	d9 df       	rcall	.-78     	; 0x110 <i2c_start>
+spi_init();
+ 15e:	cd df       	rcall	.-102    	; 0xfa <spi_init>
+ 160:	80 e0       	ldi	r24, 0x00	; 0
+
 return 0;
 }
- 160:	80 e0       	ldi	r24, 0x00	; 0
  162:	90 e0       	ldi	r25, 0x00	; 0
  164:	08 95       	ret
 

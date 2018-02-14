@@ -18,6 +18,7 @@
 #define LTC1859_CH5             0xE0
 #define LTC1859_CH6             0xB0
 #define LTC1859_CH7             0xF0
+		// UNDER MÅ kombineres med LTC1859 defines.... ADDR + INP + POWDWN -> 8bits data ord.
 #define inputRange				0x03 // b11 - 0V-10V or b01 +- 10v
 #define PowerDownSel			0x01 // Nap
 
@@ -26,6 +27,7 @@
 #define DAC_B					0x4
 #define DAC_C					0x8
 #define DAC_D					0xC
+
 // I2C Devices
 #define U7_ADDR					0xD2		
 #define U8_ADDR					0xCE
@@ -41,11 +43,8 @@
 #define control					0x06
 
 
-int main(void)
-{
-    /* Replace with your application code */
-	spi_init();	
-	i2c_start(U7_ADDR);
-	
+int main(void) {
+
+
 return 0;
 }

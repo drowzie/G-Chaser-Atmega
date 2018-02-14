@@ -422,17 +422,17 @@ END GROUP
 .debug_pubnames
  *(.debug_pubnames)
 
-.debug_info     0x00000000     0x10c8
+.debug_info     0x00000000     0x10cc
  *(.debug_info .gnu.linkonce.wi.*)
  .debug_info    0x00000000      0xbbc E:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.2.150/gcc/dev/atmega2560/avr6/crtatmega2560.o
  .debug_info    0x00000bbc      0x458 comm.o
- .debug_info    0x00001014       0xb4 main.o
+ .debug_info    0x00001014       0xb8 main.o
 
-.debug_abbrev   0x00000000      0xd18
+.debug_abbrev   0x00000000      0xd1a
  *(.debug_abbrev)
  .debug_abbrev  0x00000000      0xb1a E:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.2.150/gcc/dev/atmega2560/avr6/crtatmega2560.o
  .debug_abbrev  0x00000b1a      0x182 comm.o
- .debug_abbrev  0x00000c9c       0x7c main.o
+ .debug_abbrev  0x00000c9c       0x7e main.o
 
 .debug_line     0x00000000      0x5ad
  *(.debug_line .debug_line.* .debug_line_end)
