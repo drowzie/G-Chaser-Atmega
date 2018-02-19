@@ -21,7 +21,7 @@
 #define I2C_READ 0x01
 #define I2C_WRITE 0x00
 
-
+// Klokke hastighet må korrigeres for raskere enn UART
 void spi_init()
 {
 	// Reset pins
@@ -82,6 +82,8 @@ uint8_t i2c_start(uint8_t address)
 	return 0;
 }
 
+
+
 uint8_t i2c_write(uint8_t data)
 {
 	// load data into data register
@@ -141,7 +143,6 @@ uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 	{
 		data[i] = i2c_read_ack();
 	}
-	
 	data[(length-1)] = i2c_read_nack();
 	
 	i2c_stop();
@@ -151,7 +152,7 @@ uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 
 uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
 {
-	if (i2c_start(devaddr | 0x00)) return 1;
+	if (i2c_start(devaddr | I2C_WRITE)) return 1;
 
 	i2c_write(regaddr);
 

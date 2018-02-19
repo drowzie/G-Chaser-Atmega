@@ -21,11 +21,13 @@
 #define LTC1859_CH6             0xB0
 #define LTC1859_CH7             0xF0
 
-// UNDER MÅ kombineres med LTC1859 defines.... ADDR + INP + POWDWN -> 8bits data ord.
-#define inputRange				0x03 // b11 - 0V-10V or b01 +- 10v
-#define PowerDownSel			0x01 // Nap
+// UNDER MÅ kombineres med LTC1859 defines.... ADDR + INP + POWDWN -> 8bits data ord. (0000) + (00) + (00)...etc
+
+#define inputRange				0x03 // feil verdier.. må endres
+#define PowerDownSel			0x01 // 
 
 // SPI defines for DAC8420
+// Må endres for riktig data størrelse 
 #define DAC_A					0x0
 #define DAC_B					0x4
 #define DAC_C					0x8
@@ -53,6 +55,7 @@
 	uint8_t EEMEM k[200]; // 512 bytes
 	uint16_t EEMEM crc16;
 int main(void) {
+	
 	spi_init();
 	i2c_start(U7_ADDR);
 	
