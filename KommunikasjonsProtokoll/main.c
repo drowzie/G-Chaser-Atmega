@@ -134,15 +134,18 @@ int circular_buf_get(circular_buf_t * cbuf, uint8_t * data)
 // Init function
 	uint8_t UpperSync;
 	uint8_t lowerSync;
+	
 int main(void) {
 	circular_buf_t cbuf;
 	cbuf.size = 5;
 	cbuf.buffer = malloc(cbuf.size); // Malloc returns a pointer to allocated memory. or NULL if it fails.
 	crc16 = 0xFFFF; // Start value of CRC16
 	
-	uint16_t Synkeord = 0xABCD;
-
+	// Setter Synkordet
+	uint16_t Synkeord = 0xEB90;
 	UpperSync = Synkeord & 0x00FF;
+	lowerSync = (Synkeord>>8);
+	
 	
 	circular_buf_put(&cbuf, UpperSync);
 
