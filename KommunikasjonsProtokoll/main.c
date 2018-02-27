@@ -1,8 +1,16 @@
 /*
  * KommunikasjonsProtokoll.c
- *
+ * 
  * Author : chris
  */ 
+
+// UART settings
+#define FOSC 16000000
+#define F_CPU 16000000
+#define BAUD 9600
+#define MYUBRR F_CPU/16/BAUD-1
+
+
 #include <stdint.h>
 #include <avr/io.h>
 #include "comm.h"
@@ -10,6 +18,7 @@
 #include <avr/eeprom.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <avr/interrupt.h>
 
 // SPI Defines for LTC1859
 // Single-Ended Channel Address
@@ -23,9 +32,8 @@
 #define LTC1859_CH7             0xF0
 
 // UNDER MÅ kombineres med LTC1859 defines.... ADDR + INP + POWDWN -> 8bits data ord. (0000) + (00) + (00)...etc
-
-#define inputRange				0x03 // feil verdier.. må endres
-#define PowerDownSel			0x01 // 
+#define inputRange				0x3 // feil verdier.. må endres
+#define PowerDownSel			0x1 // 
 
 // SPI defines for DAC8420
 // Må endres for riktig data størrelse 
@@ -52,14 +60,6 @@
 #define read_eeprom_word(address) eeprom_read_word ((const uint16_t*)address)
 #define write_eeprom_word(address,value) eeprom_write_word ((uint16_t*)address,(uint16_t)value)
 #define update_eeprom_word(address,value) eeprom_update_word ((uint16_t*)address,(uint16_t)value)
-
-// Some other defines
-
-// variables
-// 	uint8_t EEMEM k[304]; // 512 bytes
-
- 	uint16_t crc16;
-	 
 	 
 // Circular Buffer
 typedef struct {
@@ -68,6 +68,10 @@ typedef struct {
 	size_t tail;
 	size_t size; 
 } circular_buf_t;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////// FUNCTIONS BELOW HERE //////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Reset the circular buffer
 int circular_buf_reset(circular_buf_t * cbuf)
@@ -115,7 +119,6 @@ int circular_buf_put(circular_buf_t * cbuf, uint8_t data)
 
 	return r;
 }
-
 int circular_buf_get(circular_buf_t * cbuf, uint8_t * data)
 {
 	int r = -1;
@@ -131,25 +134,59 @@ int circular_buf_get(circular_buf_t * cbuf, uint8_t * data)
 	return r;
 }
 
-// Init function
+// UART MODULE
+void USART_Init( unsigned int ubrr)
+{
+	/* Set baud rate */
+	UBRR0H = (unsigned char)(ubrr>>8);
+	UBRR0L = (unsigned char)ubrr;
+
+	/* Enable receiver and transmitter */
+	UCSR0B = (1<<TXEN0)|(1<<UDRIE0);
+	/* Set frame format: 8data, 2stop bit */
+	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
+}
+
+void USART_Transmit(unsigned char data)
+{
+	/* Wait for empty transmit buffer */
+	while ( !( UCSR0A & (1<<UDRE0)) );
+	/* Put data into buffer, sends the data */
+	UDR0 = data;
+}
+
+// Variables 
+	uint16_t crc16;
 	uint8_t UpperSync;
 	uint8_t lowerSync;
 	
+// INTERRUPT FUNCTION
+ISR(USART0_UDRE_vect)
+{
+	UDR0 = 'A';
+}
+	
+// ############################ MAIN #######################//	
 int main(void) {
+	
+	/////////INITS///////
+	// Declare the circular buffer struct with size 5.
 	circular_buf_t cbuf;
 	cbuf.size = 5;
-	cbuf.buffer = malloc(cbuf.size); // Malloc returns a pointer to allocated memory. or NULL if it fails.
+	cbuf.buffer = malloc(cbuf.size); // Malloc returns a pointer to allocated memory. or NULL if it fails. Takes memory from heap in runtime.
 	crc16 = 0xFFFF; // Start value of CRC16
 	
-	// Setter Synkordet
+	// Set Syncword
 	uint16_t Synkeord = 0xEB90;
 	UpperSync = Synkeord & 0x00FF;
 	lowerSync = (Synkeord>>8);
-	
-	
-	circular_buf_put(&cbuf, UpperSync);
 
-	
+	sei();
+	USART_Init(MYUBRR);
+	while(1){}
+
+
+
 // 	circular_buf_put(&cbuf, upper);
 // 	circular_buf_put(&cbuf, lower);
 
