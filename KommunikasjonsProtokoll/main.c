@@ -20,6 +20,25 @@
 #include <stdlib.h>
 #include <avr/interrupt.h>
 
+// Ports
+// SPI PORTS ADC:
+
+#define ADV_CONVST_2			DDD6
+								
+
+#define ADC_READ_2				DDD7
+
+#define ADC_1_BUSY				DDC0
+#define ADC_2_BUSY				DDB0
+	
+// DAC PORTS:
+#define CS_DAC_1				DDC1
+#define LD_DAC_1				DDC2
+
+#define CS_DAC_2				DDB1
+#define LD_DAC_2				DDB2 // SPI slave select, when SPI is set as master: DDB2 controls the direction.
+
+
 // SPI Defines for LTC1859
 // Single-Ended Channel Address
 #define LTC1859_CH0             0x80
@@ -134,6 +153,15 @@ int circular_buf_get(circular_buf_t * cbuf, uint8_t * data)
 	return r;
 }
 
+// Set direction of ports
+
+void Port_Init()
+{
+	DDRB = (0<<ADC_2_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_2);
+	DDRC = (0<<ADC_1_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_1);
+	DDRD = (1<<ADV_CONVST_2)|(1<<ADC_READ_2);
+}
+
 // UART MODULE
 void USART_Init( unsigned int ubrr)
 {
@@ -157,45 +185,39 @@ void USART_Transmit(unsigned char data)
 
 // Variables 
 	uint16_t crc16;
-	uint8_t UpperSync;
-	uint8_t lowerSync;
+	circular_buf_t cbuf;
+
 	
 // INTERRUPT FUNCTION
 ISR(USART0_UDRE_vect)
 {
-	UDR0 = 'A';
+	// UDR0 = 'A'; data to send
 }
 	
 // ############################ MAIN #######################//	
 int main(void) {
 	
+	int * array[255];
 	/////////INITS///////
 	// Declare the circular buffer struct with size 5.
-	circular_buf_t cbuf;
-	cbuf.size = 5;
-	cbuf.buffer = malloc(cbuf.size); // Malloc returns a pointer to allocated memory. or NULL if it fails. Takes memory from heap in runtime.
+	cbuf.size = 255;
+	cbuf.buffer = &array;   //malloc(cbuf.size); // Malloc returns a pointer to allocated memory. or NULL if it fails. Takes memory from heap in runtime.
 	crc16 = 0xFFFF; // Start value of CRC16
 	
-	// Set Syncword
-	uint16_t Synkeord = 0xEB90;
-	UpperSync = Synkeord & 0x00FF;
-	lowerSync = (Synkeord>>8);
-
-	sei();
+	spi_init();
+	Port_Init();
+	
+	
+	
+	
+	
+	sei();							// Interrupt
 	USART_Init(MYUBRR);
-	while(1){}
-
-
-
-// 	circular_buf_put(&cbuf, upper);
-// 	circular_buf_put(&cbuf, lower);
-
-// 	crc16 = _crc_ccitt_update(crc16, 'a');
-// 	circular_buf_put(&cbuf, 'a');
-// 
-// 	uint8_t data;
-// 	
-// 	circular_buf_get(&cbuf, &data);
+	
+	while(1)
+	{
+		
+	}
 
 
 	 //premade in atmel studio, ccitt update will update its values everytime the data is added.

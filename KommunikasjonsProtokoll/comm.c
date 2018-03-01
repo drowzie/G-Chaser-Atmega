@@ -10,12 +10,11 @@
 
 
 // SPI defines - Not all ports are correctly set...
-#define PORT_SPI	PORTB // PORTB
-#define DDR_SPI		DDRB  // Velger hele DDRB
-#define DD_MISO		DDB4  // Master input
-#define DD_MOSI		DDB3  // Master output
-#define DD_SS		DDB2  // Slave select
-#define DD_SCK		DDB5  // Clock
+#define PORT_SPI			PORTB // PORTB
+#define DDR_SPI				DDRB  // Velger hele DDRB
+#define DD_MISO				DDB4  // Master input
+#define DD_MOSI				DDB3  // Master output
+#define DD_SCK				DDB5  // Clock
 
 // I2C Defines
 #define I2C_READ 0x01
@@ -25,9 +24,9 @@
 void spi_init()
 {
 	// Reset pins
-	DDR_SPI &= ~((1<<DD_MOSI)|(1<<DD_MISO)|(1<<DD_SS)|(1<<DD_SCK));
+	DDR_SPI &= ~((1<<DD_MOSI)|(1<<DD_MISO)|(1<<DD_SCK));
 	// Output
-	DDR_SPI |= ((1<<DD_MOSI)|(1<<DD_SS)|(1<<DD_SCK));
+	DDR_SPI |= ((1<<DD_MOSI)|(1<<DD_SCK));
 	
 	SPCR = ((1<<SPE)|	// ENABLE
 			(0<<SPIE)|	// no interrupt
