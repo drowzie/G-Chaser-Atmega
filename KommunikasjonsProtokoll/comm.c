@@ -7,8 +7,6 @@
 #include <avr/io.h>
 #include <util/twi.h>
 
-
-
 // SPI defines - Not all ports are correctly set...
 #define PORT_SPI			PORTB // PORTB
 #define DDR_SPI				DDRB  // Velger hele DDRB

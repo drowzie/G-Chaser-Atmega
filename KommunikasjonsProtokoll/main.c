@@ -23,7 +23,7 @@
 // Ports
 // SPI PORTS ADC:
 
-#define ADV_CONVST_2			DDD6
+#define ADV_CONVST_2			DDD6	// CONVST 1 and READ 1 might have issues considering they are on pin ADC6 and 7...
 								
 
 #define ADC_READ_2				DDD7
@@ -157,6 +157,7 @@ int circular_buf_get(circular_buf_t * cbuf, uint8_t * data)
 
 void Port_Init()
 {
+	// Datadirections only, to set, use PORTxn
 	DDRB = (0<<ADC_2_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_2);
 	DDRC = (0<<ADC_1_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_1);
 	DDRD = (1<<ADV_CONVST_2)|(1<<ADC_READ_2);
@@ -204,7 +205,7 @@ int main(void) {
 	cbuf.buffer = &array;   //malloc(cbuf.size); // Malloc returns a pointer to allocated memory. or NULL if it fails. Takes memory from heap in runtime.
 	crc16 = 0xFFFF; // Start value of CRC16
 	
-	spi_init();
+	spi_init();		// SPI before Port init so that the SS is properly configured.
 	Port_Init();
 	
 	
