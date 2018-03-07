@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <avr/interrupt.h>
 
-
 // Storing to EEPROM functions if necessary
 #define read_eeprom_word(address) eeprom_read_word ((const uint16_t*)address)
 #define write_eeprom_word(address,value) eeprom_write_word ((uint16_t*)address,(uint16_t)value)
@@ -151,7 +150,8 @@ int main(void) {
 	//cbuf.buffer = &array;   //malloc(cbuf.size); // Malloc returns a pointer to allocated memory. or NULL if it fails. Takes memory from heap in runtime.
 	//crc16 = 0xFFFF; // Start value of CRC16
 	//
-	spi_init();		// SPI before Port init so that the SS is properly configured.
+	
+	spi_init_dac();		// SPI before Port init so that the SS is properly configured.
 	Port_Init();
 	
 	

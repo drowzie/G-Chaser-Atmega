@@ -19,7 +19,7 @@
 #define I2C_WRITE 0x00
 
 // Klokke hastighet må korrigeres for raskere enn UART
-void spi_init()
+void spi_init_dac()
 {
 	// Reset pins
 	DDR_SPI &= ~((1<<DD_MOSI)|(1<<DD_MISO)|(1<<DD_SCK));
@@ -30,7 +30,7 @@ void spi_init()
 			(0<<SPIE)|	// no interrupt
 			(0<<DORD)|	//Data order MSB first
 			(1<<MSTR)|	//Master/slave sel
-			(0<<SPR1)|(1<<SPR0)| // Spi clock rate
+			(0<<SPR1)|(1<<SPR0)| // Spi clock rate -- SPI2X:0 = fosc/4, Spi2x:1 = fosc/2
 			(0<<CPOL)|	// Clock polarity
 			(0<<CPHA)); // Clock phase
 			
@@ -48,24 +48,27 @@ void spiSync(uint8_t * dataout, uint8_t * datain, uint8_t len)
        }
 }
 
+
+// Methods may fail during UART interrupt, uncertain if the extra delay will cause any issues.
 void spiTransmitDAC_1(uint8_t * dataout, uint8_t len) 
 {
 		uint8_t i;
 		
-		PORTC = (1<<CS_DAC_1)|(1<<LD_DAC_1); // Enable register input.
+		PORTC = (0<<CS_DAC_1)|(1<<LD_DAC_1); // Enable register input.
+		// Need delay???
 		for(i = 0; i < len; i++) 
 		{
 			SPDR = dataout[i];
 			while((SPSR & (1<<SPIF))==0);
 		}
-		PORTC = (0<<CS_DAC_1)|(0<<LD_DAC_1); // Stop data in.
+		PORTC = (1<<CS_DAC_1)|(0<<LD_DAC_1); // Stop data in.
 }
 
 void spiTransmitDAC_2(uint8_t * dataout, uint8_t len) 
 {
 		uint8_t i;
 		
-		PORTB = (1<<CS_DAC_2)|(1<<LD_DAC_2); // Enable register input.		
+		PORTB = (0<<CS_DAC_2)|(1<<LD_DAC_2); // Enable register input.		
 		
 		for(i = 0; i < len; i++) 
 		{
@@ -73,8 +76,9 @@ void spiTransmitDAC_2(uint8_t * dataout, uint8_t len)
 			while((SPSR & (1<<SPIF))==0);
 		}
 		
-		PORTB = (0<<CS_DAC_2)|(0<<LD_DAC_2); // Stop register.	
+		PORTB = (1<<CS_DAC_2)|(0<<LD_DAC_2); // Stop register.	
 }
+
 
 
 // Så langt en kopi av databladet til Atmega 2560

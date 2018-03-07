@@ -3,29 +3,29 @@ KommunikasjonsProtokoll.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .data         00000000  00800100  00800100  00000112  2**0
+  0 .data         00000000  00800100  00800100  0000010e  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  1 .text         000000be  00000000  00000000  00000054  2**1
+  1 .text         000000ba  00000000  00000000  00000054  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .comment      00000030  00000000  00000000  00000112  2**0
+  2 .comment      00000030  00000000  00000000  0000010e  2**0
                   CONTENTS, READONLY
-  3 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  00000144  2**2
+  3 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  00000140  2**2
                   CONTENTS, READONLY
-  4 .debug_aranges 000000e8  00000000  00000000  00000184  2**0
+  4 .debug_aranges 000000e8  00000000  00000000  00000180  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_info   00000dd8  00000000  00000000  0000026c  2**0
+  5 .debug_info   00000dd2  00000000  00000000  00000268  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 0000089a  00000000  00000000  00001044  2**0
+  6 .debug_abbrev 0000089a  00000000  00000000  0000103a  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   000007ae  00000000  00000000  000018de  2**0
+  7 .debug_line   000007bd  00000000  00000000  000018d4  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_frame  0000026c  00000000  00000000  0000208c  2**2
+  8 .debug_frame  0000026c  00000000  00000000  00002094  2**2
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_str    0000053b  00000000  00000000  000022f8  2**0
+  9 .debug_str    0000053f  00000000  00000000  00002300  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    00000b17  00000000  00000000  00002833  2**0
+ 10 .debug_loc    00000b63  00000000  00000000  0000283f  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_ranges 000000f8  00000000  00000000  0000334a  2**0
+ 11 .debug_ranges 000000f8  00000000  00000000  000033a2  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -106,15 +106,15 @@ Disassembly of section .text:
   80:	b2 07       	cpc	r27, r18
   82:	e1 f7       	brne	.-8      	; 0x7c <.do_clear_bss_loop>
   84:	13 d0       	rcall	.+38     	; 0xac <main>
-  86:	19 c0       	rjmp	.+50     	; 0xba <_exit>
+  86:	17 c0       	rjmp	.+46     	; 0xb6 <_exit>
 
 00000088 <__bad_interrupt>:
   88:	bb cf       	rjmp	.-138    	; 0x0 <__vectors>
 
-0000008a <spi_init>:
+0000008a <spi_init_dac>:
 
 // Klokke hastighet må korrigeres for raskere enn UART
-void spi_init()
+void spi_init_dac()
 {
 	// Reset pins
 	DDR_SPI &= ~((1<<DD_MOSI)|(1<<DD_MISO)|(1<<DD_SCK));
@@ -131,7 +131,7 @@ void spi_init()
   96:	81 e5       	ldi	r24, 0x51	; 81
   98:	8c bd       	out	0x2c, r24	; 44
 			(1<<MSTR)|	//Master/slave sel
-			(0<<SPR1)|(1<<SPR0)| // Spi clock rate
+			(0<<SPR1)|(1<<SPR0)| // Spi clock rate -- SPI2X:0 = fosc/4, Spi2x:1 = fosc/2
 			(0<<CPOL)|	// Clock polarity
 			(0<<CPHA)); // Clock phase
 			
@@ -155,35 +155,27 @@ ISR(USART0_UDRE_vect)
   aa:	08 95       	ret
 
 000000ac <main>:
-	//// Declare the circular buffer struct with size 5.
 	//cbuf.size = 10;
 	//cbuf.buffer = &array;   //malloc(cbuf.size); // Malloc returns a pointer to allocated memory. or NULL if it fails. Takes memory from heap in runtime.
 	//crc16 = 0xFFFF; // Start value of CRC16
 	//
-	spi_init();		// SPI before Port init so that the SS is properly configured.
-  ac:	ee df       	rcall	.-36     	; 0x8a <spi_init>
+	
+	spi_init_dac();		// SPI before Port init so that the SS is properly configured.
+  ac:	ee df       	rcall	.-36     	; 0x8a <spi_init_dac>
 	Port_Init();
   ae:	f8 df       	rcall	.-16     	; 0xa0 <Port_Init>
-  b0:	82 e0       	ldi	r24, 0x02	; 2
-	// sei();							// Interrupt
-	// USART_Init(MYUBRR);
-	
-	
-
-		PORTC = (1<<CS_DAC_1);
-  b2:	88 b9       	out	0x08, r24	; 8
-  b4:	80 e0       	ldi	r24, 0x00	; 0
+  b0:	80 e0       	ldi	r24, 0x00	; 0
 
 	 //premade in atmel studio, ccitt update will update its values everytime the data is added.
 	 //use http://www.sunshine2k.de/coding/javascript/crc/crc_js.html to test crc
 	 
 return 0;
 }
-  b6:	90 e0       	ldi	r25, 0x00	; 0
-  b8:	08 95       	ret
+  b2:	90 e0       	ldi	r25, 0x00	; 0
+  b4:	08 95       	ret
 
-000000ba <_exit>:
-  ba:	f8 94       	cli
+000000b6 <_exit>:
+  b6:	f8 94       	cli
 
-000000bc <__stop_program>:
-  bc:	ff cf       	rjmp	.-2      	; 0xbc <__stop_program>
+000000b8 <__stop_program>:
+  b8:	ff cf       	rjmp	.-2      	; 0xb8 <__stop_program>

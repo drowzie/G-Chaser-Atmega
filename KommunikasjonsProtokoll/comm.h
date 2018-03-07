@@ -67,8 +67,12 @@
 #define control					0x06
 
 //SPI functions
-void spi_init();
+void spi_init_dac();
 void spiSync(uint8_t * dataout, uint8_t * datain, uint8_t len);
+
+//DAC functions
+void spiTransmitDAC_1(uint8_t * dataout, uint8_t len);
+void spiTransmitDAC_2(uint8_t * dataout, uint8_t len);
 
 //i2c functions
 uint8_t i2c_start(uint8_t address);
