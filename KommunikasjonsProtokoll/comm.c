@@ -48,6 +48,34 @@ void spiSync(uint8_t * dataout, uint8_t * datain, uint8_t len)
        }
 }
 
+void spiTransmitDAC_1(uint8_t * dataout, uint8_t len) 
+{
+		uint8_t i;
+		
+		PORTC = (1<<CS_DAC_1)|(1<<LD_DAC_1); // Enable register input.
+		for(i = 0; i < len; i++) 
+		{
+			SPDR = dataout[i];
+			while((SPSR & (1<<SPIF))==0);
+		}
+		PORTC = (0<<CS_DAC_1)|(0<<LD_DAC_1); // Stop data in.
+}
+
+void spiTransmitDAC_2(uint8_t * dataout, uint8_t len) 
+{
+		uint8_t i;
+		
+		PORTB = (1<<CS_DAC_2)|(1<<LD_DAC_2); // Enable register input.		
+		
+		for(i = 0; i < len; i++) 
+		{
+			SPDR = dataout[i];
+			while((SPSR & (1<<SPIF))==0);
+		}
+		
+		PORTB = (0<<CS_DAC_2)|(0<<LD_DAC_2); // Stop register.	
+}
+
 
 // Så langt en kopi av databladet til Atmega 2560
 
