@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <avr/interrupt.h>
+#include <util/delay.h>
 
 // Storing to EEPROM functions if necessary
 #define read_eeprom_word(address) eeprom_read_word ((const uint16_t*)address)
@@ -130,38 +131,66 @@ void USART_Transmit(unsigned char data)
 }
 
 // Variables 
-	uint16_t crc16;
-	circular_buf_t cbuf;
+uint16_t crc16;
+circular_buf_t cbuf;
+uint8_t i = 0;	
 
-	
 // INTERRUPT FUNCTION
-ISR(USART0_UDRE_vect)
+ISR(USART_UDRE_vect)
 {
-	// UDR0 = 'A'; data to send
+	uint8_t transmitdata = 0;
+	
+	if (i == 0)
+	{
+	circular_buf_get(&cbuf,&transmitdata);
+	UDR0 = transmitdata;
+	i++;
+	}
+	else if (i == 1)
+	{
+	_delay_ms(1000);
+	UDR0 = cbuf.tail; 
+	i++;
+	}
+	else if (i == 2)
+	{
+	_delay_ms(1000);
+	UDR0 = 'h';
+	i = 0;
+	}
 }
 	
 // ############################ MAIN #######################//	
 int main(void) {
 	
-	//int * array[10];
-	///////////INITS///////
-	//// Declare the circular buffer struct with size 5.
-	//cbuf.size = 10;
-	//cbuf.buffer = &array;   //malloc(cbuf.size); // Malloc returns a pointer to allocated memory. or NULL if it fails. Takes memory from heap in runtime.
-	//crc16 = 0xFFFF; // Start value of CRC16
-	//
+
+	uint8_t array[300];
+
+	/////////INITS///////
+	// Declare the circular buffer struct with size 5.
+	cbuf.size = 300;
+	cbuf.buffer = array;   //malloc(cbuf.size); // Malloc returns a pointer to allocated memory. or NULL if it fails. Takes memory from heap in runtime.
+	
+	crc16 = 0xFFFF; // Start value of CRC16
 	
 	spi_init_dac();		// SPI before Port init so that the SS is properly configured.
 	Port_Init();
 	
 	
-	// sei();							// Interrupt
-	// USART_Init(MYUBRR);
+	 sei();							// Interrupt
+	 USART_Init(MYUBRR);
 	
-
-
-
-
+	while(1)
+	{
+		if (!circular_buf_full(cbuf))
+		{
+			circular_buf_put(&cbuf, 'a');
+		}
+		else
+		{
+			circular_buf_reset(&cbuf);
+		}
+	}
 	 //premade in atmel studio, ccitt update will update its values everytime the data is added.
 	 //use http://www.sunshine2k.de/coding/javascript/crc/crc_js.html to test crc
 	 

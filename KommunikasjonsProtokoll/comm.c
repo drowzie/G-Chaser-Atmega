@@ -18,7 +18,7 @@
 #define I2C_READ 0x01
 #define I2C_WRITE 0x00
 
-// Klokke hastighet må korrigeres for raskere enn UART
+// Set up for DAC usage.
 void spi_init_dac()
 {
 	// Reset pins
@@ -50,6 +50,8 @@ void spiSync(uint8_t * dataout, uint8_t * datain, uint8_t len)
 
 
 // Methods may fail during UART interrupt, uncertain if the extra delay will cause any issues.
+// Best solution might just be using it before activating UART interrupt.
+
 void spiTransmitDAC_1(uint8_t * dataout, uint8_t len) 
 {
 		uint8_t i;
