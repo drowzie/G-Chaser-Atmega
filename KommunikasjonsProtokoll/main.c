@@ -133,31 +133,14 @@ void USART_Transmit(unsigned char data)
 // Variables 
 uint16_t crc16;
 circular_buf_t cbuf;
-uint8_t i = 0;	
 
 // INTERRUPT FUNCTION
 ISR(USART_UDRE_vect)
 {
 	uint8_t transmitdata = 0;
-	
-	if (i == 0)
-	{
 	circular_buf_get(&cbuf,&transmitdata);
 	UDR0 = transmitdata;
-	i++;
-	}
-	else if (i == 1)
-	{
-	_delay_ms(1000);
-	UDR0 = cbuf.tail; 
-	i++;
-	}
-	else if (i == 2)
-	{
-	_delay_ms(1000);
-	UDR0 = 'h';
-	i = 0;
-	}
+
 }
 	
 // ############################ MAIN #######################//	
