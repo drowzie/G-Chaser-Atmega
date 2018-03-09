@@ -17,7 +17,7 @@
 #define ADV_CONVERSION_START_2			DDD6	// CONVST 1 and READ 1 might have issues considering they are on pin ADC6 and 7...
 
 #define ADC_READ_1				DDB1	//  !!!Port is to be changed
-#define ADC_READ_2				DDD7
+#define ADC_READ_2				DDD7	
 
 #define ADC_1_BUSY				DDC0
 #define ADC_2_BUSY				DDB0

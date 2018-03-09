@@ -48,6 +48,20 @@ void spiSync(uint8_t * dataout, uint8_t * datain, uint8_t len)
        }
 }
 
+// SPI for ADC, interrupt might break the timing, solution: Turn of interrupt when sampling.
+
+void spiTransmitADC_1(uint8_t * dataout, uint8_t * datain)
+{
+	uint8_t i;
+	SPDR = dataout[0];
+	while((SPSR & (1<<SPIF))==0); // Wait for transfer to be complete....
+	
+	while((PORTC & (0<<ADC_1_BUSY))==0); // Wait for BUSY in ADC1859 to be set low.
+	
+}
+
+
+
 
 // Methods may fail during UART interrupt, uncertain if the extra delay will cause any issues.
 // Best solution might just be using it before activating UART interrupt.
