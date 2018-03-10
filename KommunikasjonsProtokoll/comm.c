@@ -55,8 +55,8 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t * datain)
 	uint8_t i;
 	SPDR = dataout[0];
 	while((SPSR & (1<<SPIF))==0); // Wait for transfer to be complete....
-	
-	while((PORTC & (0<<ADC_1_BUSY))==0); // Wait for BUSY in ADC1859 to be set low.
+	PORTB &= ~(1 << ADV_CONVERSION_START_1);
+	while((PORTC & (1<<ADC_1_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
 	
 }
 
