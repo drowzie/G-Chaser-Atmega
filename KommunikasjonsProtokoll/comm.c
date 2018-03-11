@@ -6,6 +6,8 @@
 #include "comm.h"
 #include <avr/io.h>
 #include <util/twi.h>
+#include <avr/interrupt.h>
+#include <util/delay.h>
 
 // SPI defines - Not all ports are correctly set...
 #define PORT_SPI			PORTB // PORTB
@@ -37,29 +39,42 @@ void spi_init_dac()
 	SPSR = (1<<SPI2X);  // Double Clock Rate
 }
 
- // Shift full array(8 bits data) through target device
-void spiSync(uint8_t * dataout, uint8_t * datain, uint8_t len) 
-{
-       uint8_t i;
-       for (i = 0; i < len; i++) {
-             SPDR = dataout[i];
-             while((SPSR & (1<<SPIF))==0);
-             datain[i] = SPDR;
-       }
-}
-
-// SPI for ADC, interrupt might break the timing, solution: Turn of interrupt when sampling.
-
-void spiTransmitADC_1(uint8_t * dataout, uint8_t * datain)
+void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 {
 	uint8_t i;
-	SPDR = dataout[0];
-	while((SPSR & (1<<SPIF))==0); // Wait for transfer to be complete....
-	PORTB &= ~(1 << ADV_CONVERSION_START_1);
+	SPDR = datain; // Transmit data
+	while(!(SPSR & (1<<SPIF)))	// Wait for transmit complete
+	PORTB &= ~(1 << ADV_CONVERSION_START_1); // set to 1
+	_delay_us(0.0042); // Delay for 42ns++
+	PORTB |= (0 << ADV_CONVERSION_START_1); // set to 0
 	while((PORTC & (1<<ADC_1_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
-	
+	cli(); // stop intterupt, data recieved now is time important.
+	PORTB &= ~(1 << ADC_READ_1); // Activate Read
+	for (i = 0; i < 2; i++)
+	{
+		while(!(SPSR & (1<<SPIF)));	// Wait for reception complete.
+		dataout[i] = SPDR;	
+	}
+	sei();
 }
-
+void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
+{
+	uint8_t i;
+	SPDR = datain; // Transmit data
+	while(!(SPSR & (1<<SPIF)))	// Wait for transmit complete
+	PORTB &= ~(1 << ADV_CONVERSION_START_2); // set to 1
+	_delay_us(0.0042); // Delay for 42ns++
+	PORTB |= (0 << ADV_CONVERSION_START_2); // set to 0
+	while((PORTC & (1<<ADC_2_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
+	cli(); // stop intterupt, data recieved now is time important.
+	PORTB &= ~(1 << ADC_READ_2); // Activate Read
+	for (i = 0; i < 2; i++)
+	{
+		while(!(SPSR & (1<<SPIF)));	// Wait for reception complete.
+		dataout[i] = SPDR;
+	}
+	sei();
+}
 
 
 
@@ -102,7 +117,7 @@ void spiTransmitDAC_2(uint8_t * dataout, uint8_t len)
 
 uint8_t i2c_start(uint8_t address)
 {
-	// I2C example taken  from ATMEGA 2560
+	// I2C example taken  from ATMEGA 2560 datasheet
 	// 1<<TWINT clears the interrupt
 	// reset TWI control register
 	TWCR = 0;

@@ -5,21 +5,20 @@
  */ 
 
 // UART settings
-#define FOSC 16000000
-#define F_CPU 16000000
-#define BAUD 9600
-#define MYUBRR F_CPU/16/BAUD-1
 
 
+#include "comm.h"
 #include <stdint.h>
 #include <avr/io.h>
-#include "comm.h"
 #include <util/crc16.h>
 #include <avr/eeprom.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <avr/interrupt.h>
-#include <util/delay.h>
+
+#define FOSC 16000000
+#define BAUD 9600
+#define MYUBRR F_CPU/16/BAUD-1
 
 // Storing to EEPROM functions if necessary
 #define read_eeprom_word(address) eeprom_read_word ((const uint16_t*)address)
@@ -134,6 +133,8 @@ void USART_Transmit(unsigned char data)
 uint16_t crc16;
 circular_buf_t cbuf;
 
+uint8_t array[244];
+
 // INTERRUPT FUNCTION
 ISR(USART_UDRE_vect)
 {
@@ -147,8 +148,6 @@ ISR(USART_UDRE_vect)
 int main(void) {
 	
 
-	uint8_t array[300];
-
 	/////////INITS///////
 	// Declare the circular buffer struct with size 5.
 	cbuf.size = 300;
@@ -156,9 +155,8 @@ int main(void) {
 	
 	crc16 = 0xFFFF; // Start value of CRC16
 	
-	spi_init_dac();		// SPI before Port init so that the SS is properly configured.
+	spi_init_dac();					// SPI before Port init so that the SS is properly configured.
 	Port_Init();
-	
 	
 	 sei();							// Interrupt
 	 USART_Init(MYUBRR);

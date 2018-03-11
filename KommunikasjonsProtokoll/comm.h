@@ -10,6 +10,10 @@
 #define COMM_H_
 #include <stdint.h>
 
+#define F_CPU 16000000
+
+
+
 
 // Ports
 // SPI PORTS ADC:
@@ -68,13 +72,16 @@
 
 //SPI functions
 void spi_init_dac();
-void spiSync(uint8_t * dataout, uint8_t * datain, uint8_t len);
+
+//ADC functions - LTC1859
+void spiTransmitADC_1(uint8_t * dataout, uint8_t datain);
+void spiTransmitADC_2(uint8_t * dataout, uint8_t datain);
 
 //DAC functions
 void spiTransmitDAC_1(uint8_t * dataout, uint8_t len);
 void spiTransmitDAC_2(uint8_t * dataout, uint8_t len);
 
-//i2c functions
+//TWI/I2C functions.
 uint8_t i2c_start(uint8_t address);
 uint8_t i2c_write(uint8_t data);
 uint8_t i2c_read_ack(void);
@@ -83,8 +90,6 @@ uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length);
 uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length);
 uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length);
 uint8_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length);
-
-// Might remove 
 void i2c_stop(void);
 
 #endif /* COMM_H_ */
