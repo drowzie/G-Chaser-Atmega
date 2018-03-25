@@ -8,7 +8,6 @@
 #include <util/twi.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-
 // SPI defines - Not all ports are correctly set...
 #define PORT_SPI			PORTB // PORTB
 #define DDR_SPI				DDRB  // Velger hele DDRB

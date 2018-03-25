@@ -10,10 +10,7 @@
 #define COMM_H_
 #include <stdint.h>
 
-#define F_CPU 16000000
-
-
-
+#define F_CPU 16000000 // Need to be changed when deployed on our own
 
 // Ports
 // SPI PORTS ADC:
