@@ -1,2 +1,16 @@
 
 wat.txt
+*.d
+*.o
+*.eep
+*.hex
+*.lss
+*.map
+*.srec
+*.d
+*.o
+*.eep
+*.elf
+*.eep
+KommunikasjonsProtokoll/Debug/KommunikasjonsProtokoll.eep
+*.eep
