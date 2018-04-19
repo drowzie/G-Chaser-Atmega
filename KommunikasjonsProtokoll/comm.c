@@ -2,12 +2,14 @@
  * comm.c
  *  Author: chris
  */ 
+
 #include <stdint.h>
 #include "comm.h"
 #include <avr/io.h>
 #include <util/twi.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+
 // SPI defines - Not all ports are correctly set...
 #define PORT_SPI			PORTB // PORTB
 #define DDR_SPI				DDRB  // Velger hele DDRB
@@ -18,6 +20,10 @@
 // I2C Defines
 #define I2C_READ 0x01
 #define I2C_WRITE 0x00
+#define F_SCL 100000U
+#define Prescaler 1
+#define TWBR_VALUE ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
+
 
 // Set up for DAC usage.
 void spi_init_dac()
@@ -27,7 +33,7 @@ void spi_init_dac()
 	// Output
 	DDR_SPI |= ((1<<DD_MOSI)|(1<<DD_SCK));
 	
-	SPCR = ((1<<SPE)|	// ENABLE
+	SPCR0 = ((1<<SPE)|	// ENABLE
 			(0<<SPIE)|	// no interrupt
 			(0<<DORD)|	//Data order MSB first
 			(1<<MSTR)|	//Master/slave sel
@@ -35,32 +41,32 @@ void spi_init_dac()
 			(0<<CPOL)|	// Clock polarity
 			(0<<CPHA)); // Clock phase
 			
-	SPSR = (1<<SPI2X);  // Double Clock Rate
+	SPSR0 = (1<<SPI2X);  // Double Clock Rate
 }
 
 void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 {
 	uint8_t i;
-	SPDR = datain; // Transmit data
-	while(!(SPSR & (1<<SPIF)))	// Wait for transmit complete
+	SPDR0 = datain; // Transmit data
+	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 	PORTB &= ~(1 << ADV_CONVERSION_START_1); // set to 1
 	_delay_us(0.0042); // Delay for 42ns++
 	PORTB |= (0 << ADV_CONVERSION_START_1); // set to 0
 	while((PORTC & (1<<ADC_1_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
-	cli(); // stop intterupt, data recieved now is time important.
+	cli(); // stop interrupt, data recieved now is time important.
 	PORTB &= ~(1 << ADC_READ_1); // Activate Read
 	for (i = 0; i < 2; i++)
 	{
-		while(!(SPSR & (1<<SPIF)));	// Wait for reception complete.
-		dataout[i] = SPDR;	
+		while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
+		dataout[i] = SPDR0;	
 	}
 	sei();
 }
 void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 {
 	uint8_t i;
-	SPDR = datain; // Transmit data
-	while(!(SPSR & (1<<SPIF)))	// Wait for transmit complete
+	SPDR0 = datain; // Transmit data
+	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 	PORTB &= ~(1 << ADV_CONVERSION_START_2); // set to 1
 	_delay_us(0.0042); // Delay for 42ns++
 	PORTB |= (0 << ADV_CONVERSION_START_2); // set to 0
@@ -69,8 +75,8 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 	PORTB &= ~(1 << ADC_READ_2); // Activate Read
 	for (i = 0; i < 2; i++)
 	{
-		while(!(SPSR & (1<<SPIF)));	// Wait for reception complete.
-		dataout[i] = SPDR;
+		while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
+		dataout[i] = SPDR0;
 	}
 	sei();
 }
@@ -88,8 +94,8 @@ void spiTransmitDAC_1(uint8_t * dataout, uint8_t len)
 		// Need delay???
 		for(i = 0; i < len; i++) 
 		{
-			SPDR = dataout[i];
-			while((SPSR & (1<<SPIF))==0);
+			SPDR0 = dataout[i];
+			while((SPSR0 & (1<<SPIF))==0);
 		}
 		PORTC = (1<<CS_DAC_1)|(0<<LD_DAC_1); // Stop data in.
 }
@@ -102,8 +108,8 @@ void spiTransmitDAC_2(uint8_t * dataout, uint8_t len)
 		
 		for(i = 0; i < len; i++) 
 		{
-			SPDR = dataout[i];
-			while((SPSR & (1<<SPIF))==0);
+			SPDR0 = dataout[i];
+			while((SPSR0 & (1<<SPIF))==0);
 		}
 		
 		PORTB = (1<<CS_DAC_2)|(0<<LD_DAC_2); // Stop register.	
@@ -114,45 +120,51 @@ void spiTransmitDAC_2(uint8_t * dataout, uint8_t len)
 // Så langt en kopi av databladet til Atmega 2560
 
 
+void i2c_init()
+{
+	TWBR0 = (uint8_t)TWBR_VALUE;
+}
+
 uint8_t i2c_start(uint8_t address)
 {
 	// I2C example taken  from ATMEGA 2560 datasheet
 	// 1<<TWINT clears the interrupt
 	// reset TWI control register
-	TWCR = 0;
+	TWCR0 = 0;
 	// transmit START condition
-	TWCR = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
-	// wait for TWINT Flag set.
-	while( !(TWCR & (1<<TWINT)) );
-	// check if the start condition was successfully transmitted
-	if((TWSR & 0xF8) != TW_START){ return 1; }
-		
-	// load slave address into data register
-	TWDR = address;
-	// start transmission of address
-	TWCR = (1<<TWINT) | (1<<TWEN);
+	TWCR0 = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
 	// wait for end of transmission
-	while( !(TWCR & (1<<TWINT)) );
+	while( !(TWCR0 & (1<<TWINT)) );
+	
+	// check if the start condition was successfully transmitted
+	if((TWSR0 & 0xF8) != TW_START){ return 1; }
+	
+	// load slave address into data register
+	TWDR0 = address;
+	// start transmission of address
+	TWCR0 = (1<<TWINT) | (1<<TWEN);
+	// wait for end of transmission
+	while( !(TWCR0 & (1<<TWINT)) );
 	
 	// check if the device has acknowledged the READ / WRITE mode
-	uint8_t twst = TW_STATUS & 0xF8;
-	if ( (twst != TW_MT_SLA_ACK) && (twst != TW_MR_SLA_ACK) ) return 1;
+	uint8_t TWST = TWSR0 & 0xF8;
+	
+   if ((TWST != TW_MT_SLA_ACK) && (TWST != TW_MR_SLA_ACK)) return 1;
 	
 	return 0;
 }
 
 
-
 uint8_t i2c_write(uint8_t data)
 {
 	// load data into data register
-	TWDR = data;
+	TWDR0 = data;
 	// start transmission of data
-	TWCR = (1<<TWINT) | (1<<TWEN);
+	TWCR0 = (1<<TWINT) | (1<<TWEN);
 	// wait for end of transmission
-	while( !(TWCR & (1<<TWINT)) );
+	while( !(TWCR0 & (1<<TWINT)) );
 	
-	if( (TWSR & 0xF8) != TW_MT_DATA_ACK ){ return 1; }
+	if( (TWSR0 & 0xF8) != TW_MT_DATA_ACK ){ return 1; }
 	
 	return 0;
 }
@@ -161,22 +173,22 @@ uint8_t i2c_read_ack(void)
 {
 	
 	// start TWI module and acknowledge data after reception
-	TWCR = (1<<TWINT) | (1<<TWEN) | (1<<TWEA);
+	TWCR0 = (1<<TWINT) | (1<<TWEN) | (1<<TWEA);
 	// wait for end of transmission
-	while( !(TWCR & (1<<TWINT)) );
+	while( !(TWCR0 & (1<<TWINT)) );
 	// return received data from TWDR
-	return TWDR;
+	return TWDR0;
 }
 
 uint8_t i2c_read_nack(void)
 {
 	
 	// start receiving without acknowledging reception
-	TWCR = (1<<TWINT) | (1<<TWEN);
+	TWCR0 = (1<<TWINT) | (1<<TWEN);
 	// wait for end of transmission
-	while( !(TWCR & (1<<TWINT)) );
+	while( !(TWCR0 & (1<<TWINT)) );
 	// return received data from TWDR
-	return TWDR;
+	return TWDR0;
 }
 
 
@@ -247,5 +259,5 @@ uint8_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t le
 void i2c_stop(void)
 {
 	// transmit STOP condition
-	TWCR = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
+	TWCR0 = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
 }

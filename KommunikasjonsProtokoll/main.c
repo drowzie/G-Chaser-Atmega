@@ -17,7 +17,7 @@
 
 // #include <avr/eeprom.h>
 
-#define FOSC 16000000
+#define FOSC 14745600
 #define BAUD 19200
 #define MYUBRR FOSC/16/BAUD-1
 
@@ -103,7 +103,7 @@ void USART_Init(unsigned int ubrr)
 circular_buf_t cbuf;
 uint8_t array[51];
 
-ISR(USART_UDRE_vect)
+ISR(USART0_UDRE_vect)
 {
 	UDR0 = 	circular_buf_get(&cbuf);;
 }
@@ -152,19 +152,28 @@ int main(void)
 			circular_buf_put(&cbuf, &pData, (SYNC>>8));
 			circular_buf_put(&cbuf, &pData, SYNC);
 			pData.mainComm_Counter++;
+			
 			} else if (pData.mainComm_Counter == 1) { // PACKETID
+				
 			circular_buf_put(&cbuf, &pData, pData.subComm_Counter);
+			
 			pData.mainComm_Counter++;
 			} else if (pData.mainComm_Counter == 2) { // CH0
+				
 			circular_buf_put(&cbuf, &pData, 0xCD);
 			pData.mainComm_Counter++;
+			
 			} else if (pData.mainComm_Counter == 3) { // SUBCOMM
+				
 			subCommPacket(&cbuf, &pData);
 			pData.mainComm_Counter++;
+			
 			} else if (pData.mainComm_Counter == 4) { // CRC packet
+				
 			circular_buf_put(&cbuf, &pData, (pData.crc16>>8)); // upper 8 bits
 			circular_buf_put(&cbuf, &pData, (pData.crc16)); // lower 8 bits
 			pData.mainComm_Counter = 0;
+			
 		}
 	}
 }

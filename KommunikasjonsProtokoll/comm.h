@@ -5,12 +5,13 @@
  *  Author: chris
  */ 
 
+#pragma once
 
 #ifndef COMM_H_
 #define COMM_H_
 #include <stdint.h>
 
-#define F_CPU 16000000 // Need to be changed when deployed on our own
+#define F_CPU 14745600 // Need to be changed when deployed on our own
 
 // Ports
 // SPI PORTS ADC:
