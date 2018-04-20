@@ -49,12 +49,12 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	uint8_t i;
 	SPDR0 = datain; // Transmit data
 	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-	PORTB &= ~(1 << ADV_CONVERSION_START_1); // set to 1
+	PORTC &= ~(1 << ADV_CONVERSION_START_1); // set to 1
 	_delay_us(0.0042); // Delay for 42ns++
-	PORTB |= (0 << ADV_CONVERSION_START_1); // set to 0
+	PORTC |= (0 << ADV_CONVERSION_START_1); // set to 0
 	while((PORTC & (1<<ADC_1_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
 	cli(); // stop interrupt, data recieved now is time important.
-	PORTB &= ~(1 << ADC_READ_1); // Activate Read
+	PORTE &= ~(1 << ADC_READ_1); // Activate Read
 	for (i = 0; i < 2; i++)
 	{
 		while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
@@ -67,12 +67,12 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 	uint8_t i;
 	SPDR0 = datain; // Transmit data
 	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-	PORTB &= ~(1 << ADV_CONVERSION_START_2); // set to 1
+	PORTD &= ~(1 << ADV_CONVERSION_START_2); // set to 1
 	_delay_us(0.0042); // Delay for 42ns++
-	PORTB |= (0 << ADV_CONVERSION_START_2); // set to 0
-	while((PORTC & (1<<ADC_2_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
+	PORTD |= (0 << ADV_CONVERSION_START_2); // set to 0
+	while((PORTB & (1<<ADC_2_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
 	cli(); // stop intterupt, data recieved now is time important.
-	PORTB &= ~(1 << ADC_READ_2); // Activate Read
+	PORTD &= ~(1 << ADC_READ_2); // Activate Read
 	for (i = 0; i < 2; i++)
 	{
 		while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
@@ -114,8 +114,6 @@ void spiTransmitDAC_2(uint8_t * dataout, uint8_t len)
 		
 		PORTB = (1<<CS_DAC_2)|(0<<LD_DAC_2); // Stop register.	
 }
-
-
 
 // Så langt en kopi av databladet til Atmega 2560
 

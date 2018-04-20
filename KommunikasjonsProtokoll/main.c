@@ -84,10 +84,11 @@ int circular_buf_get(circular_buf_t * cbuf)
 
 void Port_Init()
 {
-	// Datadirections only, to set, use PORTxn
+	// Datadirections only, to set, use PORTxn, 0 = Input, 1 = Output
 	DDRB = (0<<ADC_2_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_2);
-	DDRC = (0<<ADC_1_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_1);
-	DDRD = (1<<ADC_READ_2);
+	DDRC = (0<<ADC_1_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_1)|(1<<ADV_CONVERSION_START_1);
+	DDRD = (1<<ADC_READ_2)|(1<<ADV_CONVERSION_START_2);
+	DDRE = (1<<ADC_READ_1);
 }
 void USART_Init(unsigned int ubrr)
 {

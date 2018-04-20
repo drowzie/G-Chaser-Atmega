@@ -1,8 +1,7 @@
 /*
  * comm.h
- *
- * Created: 14.02.2018 12.06.18
- *  Author: chris
+ *	
+ * 
  */ 
 
 #pragma once
@@ -15,10 +14,10 @@
 
 // Ports
 // SPI PORTS ADC:
-#define ADV_CONVERSION_START_1			DDB0	// !!! Port is to be changed
+#define ADV_CONVERSION_START_1			DDC6	// Should be correct
 #define ADV_CONVERSION_START_2			DDD6	// CONVST 1 and READ 1 might have issues considering they are on pin ADC6 and 7...
 
-#define ADC_READ_1				DDB1	//  !!!Port is to be changed
+#define ADC_READ_1				DDRE3	//  Using port E for ADC_READ_1
 #define ADC_READ_2				DDD7	
 
 #define ADC_1_BUSY				DDC0
