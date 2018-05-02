@@ -4,7 +4,7 @@
  */ 
 
 #include <stdint.h>
-#include "comm.h"
+#include "comm.h" 
 #include <avr/io.h>
 #include <util/twi.h>
 #include <avr/interrupt.h>
@@ -123,6 +123,11 @@ void i2c_init()
 	TWBR0 = (uint8_t)TWBR_VALUE;
 }
 
+/*
+*I2C Start is called upon the start when "connecting" with a device.
+* Possible error handling in return statements 
+*
+*/
 uint8_t i2c_start(uint8_t address)
 {
 	// I2C example taken  from ATMEGA 2560 datasheet

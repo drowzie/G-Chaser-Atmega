@@ -5,8 +5,6 @@
  */ 
 
 // UART settings
-
-
 #include "comm.h"
 #include <stdint.h>
 #include <avr/io.h>
@@ -14,14 +12,16 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <util/crc16.h>
+#include <avr/wdt.h> 
 
-// #include <avr/eeprom.h>
-
-#define FOSC 14745600
-#define BAUD 19200
-#define MYUBRR FOSC/16/BAUD-1
+// A more robust way for setting baudrates-- F_CPU is set inside comm.h
+#define BAUD 9600
+#include <util/setbaud.h>
 
 #define SYNC 0x6B90
+
+// FOR EEEPROM STORAGE //
+// #include <avr/eeprom.h>
 
 // Storing to EEPROM functions if necessary
 //#define read_eeprom_word(address) eeprom_read_word ((const uint16_t*)address)
@@ -36,10 +36,11 @@ typedef struct {
 	size_t  size;
 } circular_buf_t;
 
+// Increment struct aswell as CRC16 updates.
 typedef struct {
 	uint8_t volatile mainComm_Counter; // Choose which packet to be sent out.
 	uint8_t volatile subComm_Counter; // Choose which of the subcomms to be used and sent out.
-	uint8_t volatile maxMainComms; // For CRC updater to skip when sending in CRC.
+	uint8_t volatile maxMainComms; // For CRC updater to skip when sending in CRC. 
 	uint16_t crc16;
 } packet_data;
 
@@ -90,20 +91,22 @@ void Port_Init()
 	DDRD = (1<<ADC_READ_2)|(1<<ADV_CONVERSION_START_2);
 	DDRE = (1<<ADC_READ_1);
 }
-void USART_Init(unsigned int ubrr)
+void USART_Init()
 {
 	/* Set baud rate */
-	UBRR0H = (unsigned char)(ubrr>>8);
-	UBRR0L = (unsigned char)ubrr;
+	UBRR0H = UBRRH_VALUE;
+	UBRR0L = UBRRL_VALUE;
 	
 	/* Enable transmitter */
 	UCSR0B = (1<<TXEN0)|(1<<UDRIE0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 }
+
 circular_buf_t cbuf;
 uint8_t array[51];
 
+// Interrupt function for UART when ready
 ISR(USART0_UDRE_vect)
 {
 	UDR0 = 	circular_buf_get(&cbuf);;
@@ -136,7 +139,8 @@ int main(void)
 	
 	// STARTUP operations
 	circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
-	USART_Init(MYUBRR);
+	USART_Init();
+	
 	/* Replace with your application code */
 	sei();
 	while(1)
