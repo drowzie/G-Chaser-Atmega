@@ -20,7 +20,7 @@
 // I2C Defines
 #define I2C_READ 0x01
 #define I2C_WRITE 0x00
-#define F_SCL 100000U
+#define F_SCL 8000000UL
 #define Prescaler 1
 #define TWBR_VALUE ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
 
@@ -28,58 +28,58 @@
 // Set up for DAC usage.
 void spi_init_dac()
 {
-	// Reset pins
-	DDR_SPI &= ~((1<<DD_MOSI)|(1<<DD_MISO)|(1<<DD_SCK));
+	PORTC = (1<<LD_DAC_1)|(1<<CS_DAC_1);
 	// Output
-	DDR_SPI |= ((1<<DD_MOSI)|(1<<DD_SCK));
+	DDR_SPI = ((1<<DD_MOSI)|(1<<DD_SCK));
 	
 	SPCR0 = ((1<<SPE)|	// ENABLE
 			(0<<SPIE)|	// no interrupt
 			(0<<DORD)|	//Data order MSB first
 			(1<<MSTR)|	//Master/slave sel
 			(0<<SPR1)|(1<<SPR0)| // Spi clock rate -- SPI2X:0 = fosc/4, Spi2x:1 = fosc/2
-			(0<<CPOL)|	// Clock polarity
-			(0<<CPHA)); // Clock phase
+			(1<<CPOL)|	// Clock polarity
+			(1<<CPHA)| // Clock phase
+			(3<<SPR0)); // fosc/4
 			
-	SPSR0 = (1<<SPI2X);  // Double Clock Rate
+	SPSR0 = (0<<SPI2X);  // Double Clock Rate
 }
 
-void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
-{
-	uint8_t i;
-	SPDR0 = datain; // Transmit data
-	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-	PORTC &= ~(1 << ADV_CONVERSION_START_1); // set to 1
-	_delay_us(0.0042); // Delay for 42ns++
-	PORTC |= (0 << ADV_CONVERSION_START_1); // set to 0
-	while((PORTC & (1<<ADC_1_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
-	cli(); // stop interrupt, data recieved now is time important.
-	PORTE &= ~(1 << ADC_READ_1); // Activate Read
-	for (i = 0; i < 2; i++)
-	{
-		while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
-		dataout[i] = SPDR0;	
-	}
-	sei();
-}
-void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
-{
-	uint8_t i;
-	SPDR0 = datain; // Transmit data
-	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-	PORTD &= ~(1 << ADV_CONVERSION_START_2); // set to 1
-	_delay_us(0.0042); // Delay for 42ns++
-	PORTD |= (0 << ADV_CONVERSION_START_2); // set to 0
-	while((PORTB & (1<<ADC_2_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
-	cli(); // stop intterupt, data recieved now is time important.
-	PORTD &= ~(1 << ADC_READ_2); // Activate Read
-	for (i = 0; i < 2; i++)
-	{
-		while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
-		dataout[i] = SPDR0;
-	}
-	sei();
-}
+//void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
+//{
+	//uint8_t i;
+	//SPDR0 = datain; // Transmit data
+	//while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+	//PORTC &= ~(1 << ADV_CONVERSION_START_1); // set to 1
+	//_delay_us(0.0042); // Delay for 42ns++
+	//PORTC |= (0 << ADV_CONVERSION_START_1); // set to 0
+	//while((PORTC & (1<<ADC_1_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
+	//cli(); // stop interrupt, data recieved now is time important.
+	//PORTE &= ~(1 << ADC_READ_1); // Activate Read
+	//for (i = 0; i < 2; i++)
+	//{
+		//while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
+		//dataout[i] = SPDR0;	
+	//}
+	//sei();
+//}
+//void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
+//{
+	//uint8_t i;
+	//SPDR0 = datain; // Transmit data
+	//while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+	//PORTD &= ~(1 << ADV_CONVERSION_START_2); // set to 1
+	//_delay_us(0.0042); // Delay for 42ns++
+	//PORTD |= (0 << ADV_CONVERSION_START_2); // set to 0
+	//while((PORTB & (1<<ADC_2_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
+	//cli(); // stop intterupt, data recieved now is time important.
+	//PORTD &= ~(1 << ADC_READ_2); // Activate Read
+	//for (i = 0; i < 2; i++)
+	//{
+		//while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
+		//dataout[i] = SPDR0;
+	//}
+	//sei();
+//}
 
 
 
@@ -90,14 +90,19 @@ void spiTransmitDAC_1(uint8_t * dataout, uint8_t len)
 {
 		uint8_t i;
 		
-		PORTC = (0<<CS_DAC_1)|(1<<LD_DAC_1); // Enable register input.
-		// Need delay???
-		for(i = 0; i < len; i++) 
-		{
-			SPDR0 = dataout[i];
-			while((SPSR0 & (1<<SPIF))==0);
-		}
-		PORTC = (1<<CS_DAC_1)|(0<<LD_DAC_1); // Stop data in.
+		PORTC = (0<<CS_DAC_1);
+		
+		SPDR0 = dataout[0];
+		while(!(SPSR0 & (1<<SPIF)));
+		SPDR0 = dataout[1];
+		while(!(SPSR0 & (1<<SPIF)));
+		
+		PORTC = (1<<CS_DAC_1);
+		_delay_us(0.015);
+		
+		PORTC = (0<<LD_DAC_1); // Stop data in.
+		_delay_us(0.01);
+		PORTC = (1<<LD_DAC_1); 
 }
 
 void spiTransmitDAC_2(uint8_t * dataout, uint8_t len) 

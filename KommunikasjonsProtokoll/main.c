@@ -12,10 +12,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <util/crc16.h>
-#include <avr/wdt.h> 
 
 // A more robust way for setting baudrates-- F_CPU is set inside comm.h
-#define BAUD 9600
+#define BAUD 1200
 #include <util/setbaud.h>
 
 #define SYNC 0x6B90
@@ -86,10 +85,10 @@ int circular_buf_get(circular_buf_t * cbuf)
 void Port_Init()
 {
 	// Datadirections only, to set, use PORTxn, 0 = Input, 1 = Output
-	DDRB = (0<<ADC_2_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_2);
-	DDRC = (0<<ADC_1_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_1)|(1<<ADV_CONVERSION_START_1);
-	DDRD = (1<<ADC_READ_2)|(1<<ADV_CONVERSION_START_2);
-	DDRE = (1<<ADC_READ_1);
+	// DDRB = (0<<ADC_2_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_2);
+	DDRC = (1<<CS_DAC_1)|(1<<LD_DAC_1);
+	//DDRD = (1<<ADC_READ_2)|(1<<ADV_CONVERSION_START_2);
+	//DDRE = (1<<ADC_READ_1);
 }
 void USART_Init()
 {
@@ -104,12 +103,14 @@ void USART_Init()
 }
 
 circular_buf_t cbuf;
+packet_data pData;
 uint8_t array[51];
 
 // Interrupt function for UART when ready
 ISR(USART0_UDRE_vect)
 {
-	UDR0 = 	circular_buf_get(&cbuf);;
+	UDR0 = circular_buf_get(&cbuf);
+	// UDR0 = 0xFF;
 }
 
 void subCommPacket(circular_buf_t * cbuf, packet_data * pData)
@@ -128,20 +129,42 @@ void subCommPacket(circular_buf_t * cbuf, packet_data * pData)
 
 int main(void)
 {
-	// Struct defines
-	cbuf.buffer = array;
-	cbuf.size = 51;
-	packet_data pData;
-	pData.mainComm_Counter = 0;
-	pData.subComm_Counter = 0;
-	pData.maxMainComms = 5;
-	pData.crc16 = 0xFFFF; // INITIAL CRC word
+	//// Struct defines
+	//cbuf.buffer = array;
+	//cbuf.size = 51;
+	//pData.mainComm_Counter = 0;
+	//pData.subComm_Counter = 0;
+	//pData.maxMainComms = 5;
+	//pData.crc16 = 0xFFFF; // INITIAL CRC word
+	//
+	//// A really ugly method to fix interrupt. If not added before enabling the intterupt
+	//// the program will be stuck in uart interrupt
+//
+	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
+	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
+	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
+	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
+	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
+	//
+	Port_Init();
+	spi_init_dac();	
+	// USART_Init();
 	
-	// STARTUP operations
-	circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
-	USART_Init();
+	// Dac test
+	uint8_t dacTestData[2];
+	dacTestData[0] = 0x2F;  // først inn
+	dacTestData[1] = 0xFF;  // andre
 	
-	/* Replace with your application code */
+	for (int i = 0; i < 100;)
+	{
+	spiTransmitDAC_1(dacTestData,1);
+	}
+	
+	
+	
+	
+	///* Replace with your application code */
+		
 	sei();
 	while(1)
 	{

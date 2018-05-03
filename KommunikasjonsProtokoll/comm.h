@@ -10,22 +10,22 @@
 #define COMM_H_
 #include <stdint.h>
 
-#define F_CPU 14745600 // Need to be changed when deployed on our own
+#define F_CPU (1000000UL) // Need to be changed when deployed on our own
 
 // Ports
 // SPI PORTS ADC:
-#define ADV_CONVERSION_START_1			DDC6	// Should be correct
+#define ADV_CONVERSION_START_1			DDRC6	// Should be correct
 #define ADV_CONVERSION_START_2			DDD6	// CONVST 1 and READ 1 might have issues considering they are on pin ADC6 and 7...
 
 #define ADC_READ_1				DDRE3	//  Using port E for ADC_READ_1
 #define ADC_READ_2				DDD7	
 
-#define ADC_1_BUSY				DDC0
+// #define ADC_1_BUSY				DDC0
 #define ADC_2_BUSY				DDB0
 
 // DAC PORTS:
-#define CS_DAC_1				DDC1
-#define LD_DAC_1				DDC2
+#define CS_DAC_1				DDRC1				
+#define LD_DAC_1				DDRC2
 
 #define CS_DAC_2				DDB1
 #define LD_DAC_2				DDB2 // SPI slave select, when SPI is set as master: DDB2 controls the direction.
@@ -49,10 +49,12 @@
 // SPI defines for DAC8420
 // Må endres for riktig data størrelse
 #define DAC_A					0x0
-#define DAC_B					0x4
+#define DAC_B					0x2
 #define DAC_C					0x8
 #define DAC_D					0xC
 
+// Test dac dataword
+#define FULLSCALE				0xFFF
 // I2C Devices
 #define U7_ADDR					0xD2
 #define U8_ADDR					0xCE
