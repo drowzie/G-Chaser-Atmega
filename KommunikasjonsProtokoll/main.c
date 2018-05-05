@@ -1,8 +1,10 @@
 /*
- * KommunikasjonsProtokoll.c
- * 
- * Author : chris
- */ 
+Author: Christoffer Boothby
+Version: 0.0.0.1
+Comments:
+*/
+
+
 
 // UART settings
 #include "comm.h"
@@ -35,17 +37,26 @@ typedef struct {
 	size_t  size;
 } circular_buf_t;
 
-// Increment struct aswell as CRC16 updates.
 typedef struct {
 	uint8_t volatile mainComm_Counter; // Choose which packet to be sent out.
 	uint8_t volatile subComm_Counter; // Choose which of the subcomms to be used and sent out.
-	uint8_t volatile maxMainComms; // For CRC updater to skip when sending in CRC. 
+	uint8_t volatile maxMainComms; // For CRC updater to skip when sending in CRC.
 	uint16_t crc16;
 } packet_data;
+
+circular_buf_t cbuf;
+packet_data pData;
+uint8_t array[51];
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////// FUNCTIONS BELOW HERE //////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#pragma region StoringBuffer
+
+
+
 
 // Truth statements for the circular buffer
 bool circular_buf_empty(circular_buf_t cbuf)
@@ -66,9 +77,9 @@ void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t data)
 	cbuf->head = (cbuf->head + 1) % cbuf->size; // Increase head and resets on 24%24 => 0
 	
 	// CRC UPDATER
-	if(!(pData->mainComm_Counter == pData->maxMainComms-1))
+	if(!(pData->mainComm_Counter == pData->maxMainComms-1)) // Do not enter when CRC(Max main comm has been reached)
 	{
-		pData->crc16 = _crc_ccitt_update(pData->crc16, data);
+		pData->crc16 = _crc_ccitt_update(pData->crc16, data); // Update the crc word.
 	}
 }
 
@@ -80,15 +91,24 @@ int circular_buf_get(circular_buf_t * cbuf)
 	return data;
 }
 
-// Set direction of ports
+#pragma endregion
 
+#pragma region INITIALIZATION
 void Port_Init()
 {
 	// Datadirections only, to set, use PORTxn, 0 = Input, 1 = Output
 	// DDRB = (0<<ADC_2_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_2);
-	DDRC = (1<<CS_DAC_1)|(1<<LD_DAC_1);
+	DDRC = (1<<CS_DAC_1)|(1<<LD_DAC_1)|(0<<ADC_1_BUSY);
 	//DDRD = (1<<ADC_READ_2)|(1<<ADV_CONVERSION_START_2);
-	//DDRE = (1<<ADC_READ_1);
+	DDRE = (1<<ADC_READ_1)|(1<<ADV_CONVERSION_START_1);
+	
+	// Start configurations
+	PORTE |= (1<<ADC_READ_1); // set default high
+	PORTE &= ~(1<<ADV_CONVERSION_START_1); // Default low
+	
+	PORTC |= (1<<LD_DAC_1)|(1<<CS_DAC_1);
+	
+	PORTB |= (1<<LD_DAC_2);
 }
 void USART_Init()
 {
@@ -97,22 +117,18 @@ void USART_Init()
 	UBRR0L = UBRRL_VALUE;
 	
 	/* Enable transmitter */
-	UCSR0B = (1<<TXEN0)|(1<<UDRIE0);
+	UCSR0B = (1<<TXEN0)|(0<<UDRIE0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 }
 
-circular_buf_t cbuf;
-packet_data pData;
-uint8_t array[51];
+#pragma endregion
 
-// Interrupt function for UART when ready
-ISR(USART0_UDRE_vect)
-{
-	UDR0 = circular_buf_get(&cbuf);
-	// UDR0 = 0xFF;
-}
 
+/*
+subCommPacket is the main method to circle through different HOUSEKEEPING channels.
+Should be over 20 different channels.
+*/
 void subCommPacket(circular_buf_t * cbuf, packet_data * pData)
 {
 	if(pData->subComm_Counter == 0)
@@ -127,6 +143,9 @@ void subCommPacket(circular_buf_t * cbuf, packet_data * pData)
 	}
 }
 
+
+
+
 int main(void)
 {
 	//// Struct defines
@@ -139,70 +158,81 @@ int main(void)
 	//
 	//// A really ugly method to fix interrupt. If not added before enabling the intterupt
 	//// the program will be stuck in uart interrupt
-//
-	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
-	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
-	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
-	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
-	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
-	//
-	Port_Init();
-	spi_init_dac();	
-	// USART_Init();
 	
-	// Dac test
-	uint8_t dacTestData[2];
-	dacTestData[0] = 0x2F;  // først inn
-	dacTestData[1] = 0xFF;  // andre
 	
-	for (int i = 0; i < 100;)
-	{
-	spiTransmitDAC_1(dacTestData,1);
+	// When UART interrupt is turned on, it will instantly interrupt.
+	// To prevent it from being stuck inside the loop. Fill the buffer with garbage.
+	for(int i = 0; i < 5; i++){
+	circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
 	}
+
+	USART_Init();
+	Port_Init();
+	spi_init_dac();
 	
+	// For testing with ADC
+	//uint8_t dataOut[2];
+	//uint8_t dataIn;
+	//dataIn = 0x94; // 1000 0000
+	uint8_t dacWord;
+	dacWord = (4<<DAC_B | 0xF);
+	while(1)
+	{
+	 //spiTransmitADC_1(dataOut,dataIn);
+	//UDR0 = dataOut[0];
+	//while ( !( UCSR0A & (1<<UDRE0)) );
+	//UDR0 = dataOut[1];
+	//while ( !( UCSR0A & (1<<UDRE0)) );
+	}
 	
 	
 	
 	///* Replace with your application code */
-		
-	sei();
-	while(1)
-	{
-		
-		if(circular_buf_full(cbuf))
-		{
-			// Do nothing when full
-		}
-		// PACKET FORMAT
-		else if(pData.mainComm_Counter == 0) // SYNC FIRST TWO
-		{
-			pData.crc16 = 0xFFFF;
-			circular_buf_put(&cbuf, &pData, (SYNC>>8));
-			circular_buf_put(&cbuf, &pData, SYNC);
-			pData.mainComm_Counter++;
-			
-			} else if (pData.mainComm_Counter == 1) { // PACKETID
-				
-			circular_buf_put(&cbuf, &pData, pData.subComm_Counter);
-			
-			pData.mainComm_Counter++;
-			} else if (pData.mainComm_Counter == 2) { // CH0
-				
-			circular_buf_put(&cbuf, &pData, 0xCD);
-			pData.mainComm_Counter++;
-			
-			} else if (pData.mainComm_Counter == 3) { // SUBCOMM
-				
-			subCommPacket(&cbuf, &pData);
-			pData.mainComm_Counter++;
-			
-			} else if (pData.mainComm_Counter == 4) { // CRC packet
-				
-			circular_buf_put(&cbuf, &pData, (pData.crc16>>8)); // upper 8 bits
-			circular_buf_put(&cbuf, &pData, (pData.crc16)); // lower 8 bits
-			pData.mainComm_Counter = 0;
-			
-		}
-	}
+		//
+ 	//sei();
+	//while(1)
+	//{
+		//
+		//if(circular_buf_full(cbuf))
+		//{
+			//// Do nothing when full
+		//}
+		//// PACKET FORMAT
+		//else if(pData.mainComm_Counter == 0) // SYNC FIRST TWO
+		//{
+			//pData.crc16 = 0xFFFF;
+			//circular_buf_put(&cbuf, &pData, (SYNC>>8));
+			//circular_buf_put(&cbuf, &pData, SYNC);
+			//pData.mainComm_Counter++;
+			//
+			//} else if (pData.mainComm_Counter == 1) { // PACKETID
+				//
+			//circular_buf_put(&cbuf, &pData, pData.subComm_Counter);
+			//
+			//pData.mainComm_Counter++;
+			//} else if (pData.mainComm_Counter == 2) { // CH0
+				//
+			//circular_buf_put(&cbuf, &pData, 0xCD);
+			//pData.mainComm_Counter++;
+			//
+			//} else if (pData.mainComm_Counter == 3) { // SUBCOMM
+				//
+			//subCommPacket(&cbuf, &pData);
+			//pData.mainComm_Counter++;
+			//
+			//} else if (pData.mainComm_Counter == 4) { // CRC packet
+				//
+			//circular_buf_put(&cbuf, &pData, (pData.crc16>>8)); // upper 8 bits
+			//circular_buf_put(&cbuf, &pData, (pData.crc16)); // lower 8 bits
+			//pData.mainComm_Counter = 0;
+			//
+		//}
+	//}
 }
 
+
+ISR(USART0_UDRE_vect)
+{
+	UDR0 = circular_buf_get(&cbuf);
+	// UDR0 = 0xFF;
+}

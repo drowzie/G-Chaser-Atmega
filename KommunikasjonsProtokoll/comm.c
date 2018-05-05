@@ -3,6 +3,8 @@
  *  Author: chris
  */ 
 
+#pragma region Includes
+
 #include <stdint.h>
 #include "comm.h" 
 #include <avr/io.h>
@@ -10,58 +12,59 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
+#pragma endregion
+
 // SPI defines - Not all ports are correctly set...
 #define PORT_SPI			PORTB // PORTB
 #define DDR_SPI				DDRB  // Velger hele DDRB
-#define DD_MISO				DDB4  // Master input
-#define DD_MOSI				DDB3  // Master output
-#define DD_SCK				DDB5  // Clock
+#define DD_MISO				DDRB4  // Master input
+#define DD_MOSI				DDRB3  // Master output
+#define DD_SCK				DDRB5  // Clock
 
-// I2C Defines
-#define I2C_READ 0x01
-#define I2C_WRITE 0x00
-#define F_SCL 8000000UL
-#define Prescaler 1
-#define TWBR_VALUE ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
-
+#pragma region SpiADC
 
 // Set up for DAC usage.
-void spi_init_dac()
-{
-	PORTC = (1<<LD_DAC_1)|(1<<CS_DAC_1);
+void spi_init_adc()
+{	
 	// Output
-	DDR_SPI = ((1<<DD_MOSI)|(1<<DD_SCK));
+	DDR_SPI = ((1<<DD_MOSI)|(1<<DD_SCK)|(0<<DD_MISO));
 	
 	SPCR0 = ((1<<SPE)|	// ENABLE
 			(0<<SPIE)|	// no interrupt
-			(0<<DORD)|	//Data order MSB first
 			(1<<MSTR)|	//Master/slave sel
-			(0<<SPR1)|(1<<SPR0)| // Spi clock rate -- SPI2X:0 = fosc/4, Spi2x:1 = fosc/2
-			(1<<CPOL)|	// Clock polarity
-			(1<<CPHA)| // Clock phase
-			(3<<SPR0)); // fosc/4
+			(0<<SPR1)|(1<<SPR0)| // Spi clock rate -- fosc/16
+			(0<<CPOL)|	// Clock polarity // 1 for DAC | 0 for ADC
+			(0<<CPHA)); // Clock phase    // 1 for DAC | 0 for ADC
 			
 	SPSR0 = (0<<SPI2X);  // Double Clock Rate
 }
 
-//void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
-//{
-	//uint8_t i;
-	//SPDR0 = datain; // Transmit data
-	//while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-	//PORTC &= ~(1 << ADV_CONVERSION_START_1); // set to 1
-	//_delay_us(0.0042); // Delay for 42ns++
-	//PORTC |= (0 << ADV_CONVERSION_START_1); // set to 0
-	//while((PORTC & (1<<ADC_1_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
-	//cli(); // stop interrupt, data recieved now is time important.
-	//PORTE &= ~(1 << ADC_READ_1); // Activate Read
-	//for (i = 0; i < 2; i++)
-	//{
-		//while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
-		//dataout[i] = SPDR0;	
-	//}
-	//sei();
-//}
+void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
+{
+	// while((PORTC & (0<<ADC_1_BUSY))); // When busy is high
+
+	PORTE &= ~(1<<ADC_READ_1); // low
+	
+	SPDR0 = 0b10010100; // Transmit data
+	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+	//while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
+	dataout[0] = SPDR0;	 // Get MSB
+	SPDR0 = 0x00; // transmit dummy byte
+	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+	dataout[1] = SPDR0;	 // Get MSB
+	
+	PORTE |= (1<<ADC_READ_1); // high
+	
+	// Start conversion on off
+	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
+	_delay_us(0.005);
+	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
+	
+	_delay_ms(1);
+}
+
+
+
 //void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 //{
 	//uint8_t i;
@@ -81,28 +84,46 @@ void spi_init_dac()
 	//sei();
 //}
 
+#pragma endregion SpiADC
 
+#pragma region DACsettings
 
-// Methods may fail during UART interrupt, uncertain if the extra delay will cause any issues.
-// Best solution might just be using it before activating UART interrupt.
-
-void spiTransmitDAC_1(uint8_t * dataout, uint8_t len) 
+void spi_init_dac()
 {
-		uint8_t i;
-		
-		PORTC = (0<<CS_DAC_1);
-		
-		SPDR0 = dataout[0];
+	// Output
+	DDR_SPI = ((1<<DD_MOSI)|(1<<DD_SCK)|(0<<DD_MISO));
+	
+	SPCR0 = ((1<<SPE)|	// ENABLE
+	(0<<SPIE)|	// no interrupt
+	(1<<MSTR)|	//Master/slave sel
+	(0<<SPR1)|(1<<SPR0)| // Spi clock rate -- fosc/16
+	(1<<CPOL)|	// Clock polarity // 1 for DAC | 0 for ADC
+	(1<<CPHA)); // Clock phase    // 1 for DAC | 0 for ADC
+	
+	SPSR0 = (0<<SPI2X);  // Double Clock Rate
+}
+
+/* Will set the voltages on the DAC8420 on PCB1
+For this method it requires an dacAdress with the upper 4 bits of the voltage settings
+Example(FULLSCALE):
+			uint8_t dacAdress;
+Transmit->	dacWord = (4<<DAC_B | 0xF);
+Transmit->  0xFF
+*/
+void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData) 
+{
+		PORTC &= ~(1<<CS_DAC_1); // Chip Select go low
+		_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
+		// Send data
+		SPDR0 = dacAdress;
 		while(!(SPSR0 & (1<<SPIF)));
-		SPDR0 = dataout[1];
+		SPDR0 = dacData;
 		while(!(SPSR0 & (1<<SPIF)));
-		
-		PORTC = (1<<CS_DAC_1);
-		_delay_us(0.015);
-		
-		PORTC = (0<<LD_DAC_1); // Stop data in.
-		_delay_us(0.01);
-		PORTC = (1<<LD_DAC_1); 
+		// End
+		PORTC |= (1<<CS_DAC_1); // Chip Select go high
+		// Strobe the Load Data pin
+		PORTC &= ~(1<<LD_DAC_1); // Stop data in.
+		PORTC |= (1<<LD_DAC_1);  // set to 1
 }
 
 void spiTransmitDAC_2(uint8_t * dataout, uint8_t len) 
@@ -120,8 +141,16 @@ void spiTransmitDAC_2(uint8_t * dataout, uint8_t len)
 		PORTB = (1<<CS_DAC_2)|(0<<LD_DAC_2); // Stop register.	
 }
 
-// Så langt en kopi av databladet til Atmega 2560
+#pragma endregion DAC
 
+#pragma region TWIregion
+
+// I2C Defines
+#define I2C_READ 0x01
+#define I2C_WRITE 0x00
+#define F_SCL (14745600UL)
+#define Prescaler 1
+#define TWBR_VALUE ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
 
 void i2c_init()
 {
@@ -269,3 +298,5 @@ void i2c_stop(void)
 	// transmit STOP condition
 	TWCR0 = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
 }
+
+#pragma endregion TWIregion

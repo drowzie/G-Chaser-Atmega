@@ -10,25 +10,25 @@
 #define COMM_H_
 #include <stdint.h>
 
-#define F_CPU (1000000UL) // Need to be changed when deployed on our own
+#define F_CPU (14745600UL) // Need to be changed when deployed on our own
 
 // Ports
 // SPI PORTS ADC:
-#define ADV_CONVERSION_START_1			DDRC6	// Should be correct
-#define ADV_CONVERSION_START_2			DDD6	// CONVST 1 and READ 1 might have issues considering they are on pin ADC6 and 7...
+#define ADV_CONVERSION_START_1			DDRE2	// Should be correct
+#define ADV_CONVERSION_START_2			DDRB6	// CONVST 1 and READ 1 might have issues considering they are on pin ADC6 and 7...
 
 #define ADC_READ_1				DDRE3	//  Using port E for ADC_READ_1
 #define ADC_READ_2				DDD7	
 
-// #define ADC_1_BUSY				DDC0
-#define ADC_2_BUSY				DDB0
+#define ADC_1_BUSY				DDRC0
+#define ADC_2_BUSY				DDRB0
 
 // DAC PORTS:
 #define CS_DAC_1				DDRC1				
 #define LD_DAC_1				DDRC2
 
-#define CS_DAC_2				DDB1
-#define LD_DAC_2				DDB2 // SPI slave select, when SPI is set as master: DDB2 controls the direction.
+#define CS_DAC_2				DDRB1
+#define LD_DAC_2				DDRB2 // SPI slave select, when SPI is set as master: DDB2 controls the direction.
 
 
 // SPI Defines for LTC1859
@@ -46,15 +46,11 @@
 #define inputRange				0x3 // feil verdier.. må endres
 #define PowerDownSel			0x1 //
 
-// SPI defines for DAC8420
-// Må endres for riktig data størrelse
-#define DAC_A					0x0
-#define DAC_B					0x2
-#define DAC_C					0x8
-#define DAC_D					0xC
+// DAC8420 Adress in binary
+#define DAC_B					0b0100
+#define DAC_C					0b1000
+#define DAC_D					0b1100
 
-// Test dac dataword
-#define FULLSCALE				0xFFF
 // I2C Devices
 #define U7_ADDR					0xD2
 #define U8_ADDR					0xCE
@@ -77,7 +73,7 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain);
 void spiTransmitADC_2(uint8_t * dataout, uint8_t datain);
 
 //DAC functions
-void spiTransmitDAC_1(uint8_t * dataout, uint8_t len);
+void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData);
 void spiTransmitDAC_2(uint8_t * dataout, uint8_t len);
 
 //TWI/I2C functions.
