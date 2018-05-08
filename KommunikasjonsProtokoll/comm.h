@@ -32,19 +32,15 @@
 
 
 // SPI Defines for LTC1859
-// Single-Ended Channel Address
+// Single-Ended Channel Address 
 #define LTC1859_CH0             0b10000100
 #define LTC1859_CH1             0b11010100
-#define LTC1859_CH2             0x10010100
-#define LTC1859_CH3             0x11010100
-#define LTC1859_CH4             0x10100100
-#define LTC1859_CH5             0x11100100
-#define LTC1859_CH6             0x10110100
-#define LTC1859_CH7             0x11110100
-
-// UNDER MÅ kombineres med LTC1859 defines.... ADDR + INP + POWDWN -> 8bits data ord. (0000) + (00) + (00)...etc
-#define inputRange				0x3 // feil verdier.. må endres
-#define PowerDownSel			0x1 //
+#define LTC1859_CH2             0b10010100
+#define LTC1859_CH3             0b11010100
+#define LTC1859_CH4             0b10100100
+#define LTC1859_CH5             0b11100100
+#define LTC1859_CH6             0b10110100
+#define LTC1859_CH7             0b11110100
 
 // DAC8420 Adress in binary
 #define DAC_B					0x4
@@ -67,6 +63,7 @@
 
 //SPI functions
 void spi_init_dac();
+void spi_init_adc();
 
 //ADC functions - LTC1859
 void spiTransmitADC_1(uint8_t * dataout, uint8_t datain);
@@ -79,7 +76,7 @@ void spiTransmitDAC_2(uint8_t * dataout, uint8_t len);
 //TWI/I2C functions.
 uint8_t i2c_start(uint8_t address);
 uint8_t i2c_write(uint8_t data);
-uint8_t i2c_read_ack(void);
+uint8_t i2c_read_ack(void);	
 uint8_t i2c_read_nack(void);
 uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length);
 uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length);

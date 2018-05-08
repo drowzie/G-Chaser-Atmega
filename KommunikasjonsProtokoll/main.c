@@ -53,6 +53,7 @@ uint8_t array[51];
 //////////////////////////////////////////////////// FUNCTIONS BELOW HERE //////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#pragma region Bufferzone
 
 // Truth statements for the circular buffer
 bool circular_buf_empty(circular_buf_t cbuf)
@@ -87,6 +88,7 @@ int circular_buf_get(circular_buf_t * cbuf)
 	return data;
 }
 
+#pragma endregion
 
 void Port_Init()
 {
@@ -111,7 +113,7 @@ void USART_Init()
 	UBRR0L = UBRRL_VALUE;
 	
 	/* Enable transmitter */
-	UCSR0B = (1<<TXEN0)|(0<<UDRIE0);
+	UCSR0B = (1<<TXEN0); // |(0<<UDRIE0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 }
@@ -160,40 +162,44 @@ int main(void)
 
 	USART_Init();
 	Port_Init();
-	spi_init_dac();
+
 	
 	// For testing with ADC
-
-	
-	
-	
-	dacWord =  (DAC_C<<4 | 0xF);
-	annetOrd = (DAC_B<<4 | 0xF);
-	tilfeldigOrd1 = (DAC_D<<4 | 0xF);
-	
-
-
-		spiTransmitDAC_1(dacWord,  0xFF);
-		spiTransmitDAC_1(annetOrd, 0xFF);
-		spiTransmitDAC_1(tilfeldigOrd1, 0xFF);
+#pragma region test
+#pragma region DACtest	
+	//
+	//spi_init_dac();
+	//dacWord =  (DAC_C<<4 | 0x8);
+	//annetOrd = (DAC_B<<4 | 0x8);
+	//tilfeldigOrd1 = (DAC_D<<4 | 0x8);
+	//spiTransmitDAC_1(dacWord,  0x00);
+	//spiTransmitDAC_1(annetOrd, 0x00);
+	//spiTransmitDAC_1(tilfeldigOrd1, 0x00);
 		
+#pragma endregion
 #pragma region ADCTEST
-
-	uint8_t dataOut[2];
-	uint8_t dataIn;
-	dataIn = 0x11010100;
-	while(1)
-	{
-	spiTransmitADC_1(dataOut,dataIn);
-	UDR0 = 0xAA;
-	while ( !( UCSR0A & (1<<UDRE0)) );
-	UDR0 = dataOut[0];
-	while ( !( UCSR0A & (1<<UDRE0)) );
-	UDR0 = dataOut[1];
-	while ( !( UCSR0A & (1<<UDRE0)) );
-	}
+	//spi_init_adc();
+	//uint8_t dataOut[2];
+	//uint8_t dataIn;
+	//dataIn = LTC1859_CH3;
+	//while(1)
+	//{
+	//spiTransmitADC_1(dataOut,dataIn);
+	//UDR0 = 0xdF;
+	//while ( !( UCSR0A & (1<<UDRE0)) );
+	//UDR0 = dataOut[0];
+	//while ( !( UCSR0A & (1<<UDRE0)) );
+	//UDR0 = dataOut[1];
+	//while ( !( UCSR0A & (1<<UDRE0)) );
+	//}
 #pragma endregion 
-	
+
+#pragma region i2ctest
+
+
+
+#pragma endregion
+#pragma endregion
 	
 #pragma region Packetformat
 	
