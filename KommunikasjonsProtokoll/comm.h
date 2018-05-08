@@ -33,23 +33,23 @@
 
 // SPI Defines for LTC1859
 // Single-Ended Channel Address
-#define LTC1859_CH0             0x80
-#define LTC1859_CH1             0xC0
-#define LTC1859_CH2             0x90
-#define LTC1859_CH3             0xD0
-#define LTC1859_CH4             0xA0
-#define LTC1859_CH5             0xE0
-#define LTC1859_CH6             0xB0
-#define LTC1859_CH7             0xF0
+#define LTC1859_CH0             0b10000100
+#define LTC1859_CH1             0b11010100
+#define LTC1859_CH2             0x10010100
+#define LTC1859_CH3             0x11010100
+#define LTC1859_CH4             0x10100100
+#define LTC1859_CH5             0x11100100
+#define LTC1859_CH6             0x10110100
+#define LTC1859_CH7             0x11110100
 
 // UNDER MÅ kombineres med LTC1859 defines.... ADDR + INP + POWDWN -> 8bits data ord. (0000) + (00) + (00)...etc
 #define inputRange				0x3 // feil verdier.. må endres
 #define PowerDownSel			0x1 //
 
 // DAC8420 Adress in binary
-#define DAC_B					0b0100
-#define DAC_C					0b1000
-#define DAC_D					0b1100
+#define DAC_B					0x4
+#define DAC_C					0x8
+#define DAC_D					0xC
 
 // I2C Devices
 #define U7_ADDR					0xD2

@@ -53,10 +53,6 @@ uint8_t array[51];
 //////////////////////////////////////////////////// FUNCTIONS BELOW HERE //////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#pragma region StoringBuffer
-
-
-
 
 // Truth statements for the circular buffer
 bool circular_buf_empty(circular_buf_t cbuf)
@@ -91,9 +87,7 @@ int circular_buf_get(circular_buf_t * cbuf)
 	return data;
 }
 
-#pragma endregion
 
-#pragma region INITIALIZATION
 void Port_Init()
 {
 	// Datadirections only, to set, use PORTxn, 0 = Input, 1 = Output
@@ -122,7 +116,6 @@ void USART_Init()
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 }
 
-#pragma endregion
 
 
 /*
@@ -142,10 +135,9 @@ void subCommPacket(circular_buf_t * cbuf, packet_data * pData)
 		pData->subComm_Counter = 0;
 	}
 }
-
-
-
-
+	uint8_t dacWord;
+	uint8_t annetOrd;
+	uint8_t tilfeldigOrd1;
 int main(void)
 {
 	//// Struct defines
@@ -162,30 +154,48 @@ int main(void)
 	
 	// When UART interrupt is turned on, it will instantly interrupt.
 	// To prevent it from being stuck inside the loop. Fill the buffer with garbage.
-	for(int i = 0; i < 5; i++){
-	circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
-	}
+	//for(int i = 0; i < 5; i++){
+	//circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
+	//}
 
 	USART_Init();
 	Port_Init();
 	spi_init_dac();
 	
 	// For testing with ADC
-	//uint8_t dataOut[2];
-	//uint8_t dataIn;
-	//dataIn = 0x94; // 1000 0000
-	uint8_t dacWord;
-	dacWord = (4<<DAC_B | 0xF);
+
+	
+	
+	
+	dacWord =  (DAC_C<<4 | 0xF);
+	annetOrd = (DAC_B<<4 | 0xF);
+	tilfeldigOrd1 = (DAC_D<<4 | 0xF);
+	
+
+
+		spiTransmitDAC_1(dacWord,  0xFF);
+		spiTransmitDAC_1(annetOrd, 0xFF);
+		spiTransmitDAC_1(tilfeldigOrd1, 0xFF);
+		
+#pragma region ADCTEST
+
+	uint8_t dataOut[2];
+	uint8_t dataIn;
+	dataIn = 0x11010100;
 	while(1)
 	{
-	 //spiTransmitADC_1(dataOut,dataIn);
-	//UDR0 = dataOut[0];
-	//while ( !( UCSR0A & (1<<UDRE0)) );
-	//UDR0 = dataOut[1];
-	//while ( !( UCSR0A & (1<<UDRE0)) );
+	spiTransmitADC_1(dataOut,dataIn);
+	UDR0 = 0xAA;
+	while ( !( UCSR0A & (1<<UDRE0)) );
+	UDR0 = dataOut[0];
+	while ( !( UCSR0A & (1<<UDRE0)) );
+	UDR0 = dataOut[1];
+	while ( !( UCSR0A & (1<<UDRE0)) );
 	}
+#pragma endregion 
 	
 	
+#pragma region Packetformat
 	
 	///* Replace with your application code */
 		//
@@ -230,6 +240,8 @@ int main(void)
 	//}
 }
 
+
+#pragma endregion
 
 ISR(USART0_UDRE_vect)
 {

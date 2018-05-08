@@ -3,16 +3,12 @@
  *  Author: chris
  */ 
 
-#pragma region Includes
-
 #include <stdint.h>
 #include "comm.h" 
 #include <avr/io.h>
 #include <util/twi.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-
-#pragma endregion
 
 // SPI defines - Not all ports are correctly set...
 #define PORT_SPI			PORTB // PORTB
@@ -21,7 +17,6 @@
 #define DD_MOSI				DDRB3  // Master output
 #define DD_SCK				DDRB5  // Clock
 
-#pragma region SpiADC
 
 // Set up for DAC usage.
 void spi_init_adc()
@@ -45,7 +40,7 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 
 	PORTE &= ~(1<<ADC_READ_1); // low
 	
-	SPDR0 = 0b10010100; // Transmit data
+	SPDR0 = datain; // Transmit data
 	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 	//while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
 	dataout[0] = SPDR0;	 // Get MSB
@@ -84,9 +79,7 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	//sei();
 //}
 
-#pragma endregion SpiADC
 
-#pragma region DACsettings
 
 void spi_init_dac()
 {
@@ -120,10 +113,12 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 		SPDR0 = dacData;
 		while(!(SPSR0 & (1<<SPIF)));
 		// End
+		_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
 		PORTC |= (1<<CS_DAC_1); // Chip Select go high
 		// Strobe the Load Data pin
 		PORTC &= ~(1<<LD_DAC_1); // Stop data in.
 		PORTC |= (1<<LD_DAC_1);  // set to 1
+		_delay_ms(1);
 }
 
 void spiTransmitDAC_2(uint8_t * dataout, uint8_t len) 
@@ -141,9 +136,6 @@ void spiTransmitDAC_2(uint8_t * dataout, uint8_t len)
 		PORTB = (1<<CS_DAC_2)|(0<<LD_DAC_2); // Stop register.	
 }
 
-#pragma endregion DAC
-
-#pragma region TWIregion
 
 // I2C Defines
 #define I2C_READ 0x01
@@ -298,5 +290,3 @@ void i2c_stop(void)
 	// transmit STOP condition
 	TWCR0 = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
 }
-
-#pragma endregion TWIregion
