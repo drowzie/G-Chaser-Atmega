@@ -61,6 +61,9 @@
 #define adIn_LSB				0x05
 #define control					0x06
 
+#define I2C_READ 0x01
+#define I2C_WRITE 0x00
+
 //SPI functions
 void spi_init_dac();
 void spi_init_adc();
@@ -74,9 +77,10 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData);
 void spiTransmitDAC_2(uint8_t * dataout, uint8_t len);
 
 //TWI/I2C functions.
+void i2c_init(void);
 uint8_t i2c_start(uint8_t address);
 uint8_t i2c_write(uint8_t data);
-uint8_t i2c_read_ack(void);	
+uint8_t i2c_read_ack(void);
 uint8_t i2c_read_nack(void);
 uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length);
 uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length);

@@ -18,7 +18,7 @@
 #define DD_SCK				DDRB5  // Clock
 
 
-// Set up for DAC usage.
+// Set up for ADC usage.
 void spi_init_adc()
 {	
 	// Output
@@ -39,7 +39,7 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	// while((PORTC & (0<<ADC_1_BUSY))); // When busy is high
 
 	PORTE &= ~(1<<ADC_READ_1); // low
-	
+	cli(); // turn of interrupt
 	SPDR0 = datain; // Transmit data
 	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 	//while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
@@ -54,8 +54,7 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
 	_delay_us(0.005);
 	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
-	
-	_delay_ms(1);
+	sei();
 }
 
 
@@ -137,29 +136,24 @@ void spiTransmitDAC_2(uint8_t * dataout, uint8_t len)
 }
 
 
-// I2C Defines
-#define I2C_READ 0x01
-#define I2C_WRITE 0x00
-#define F_SCL (14745600UL)
-#define Prescaler 1
-#define TWBR_VALUE ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
+#pragma region i2c
 
-void i2c_init()
+// I2C Defines
+#define TWI_FREQ 1000
+#define Prescaler 64
+#define TWBR_val ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
+
+
+void i2c_init(void)
 {
-	TWBR0 = (uint8_t)TWBR_VALUE;
+	TWSR0 = (1<<TWPS1)|(1<<TWPS0);
+	TWBR0 = ((((F_CPU / TWI_FREQ) / Prescaler) - 16 ) / 2);
+	TWCR0 = 0;
+	// PORTC |= (1<<PORTC5)|(1<<PORTC4);
 }
 
-/*
-*I2C Start is called upon the start when "connecting" with a device.
-* Possible error handling in return statements 
-*
-*/
 uint8_t i2c_start(uint8_t address)
 {
-	// I2C example taken  from ATMEGA 2560 datasheet
-	// 1<<TWINT clears the interrupt
-	// reset TWI control register
-	TWCR0 = 0;
 	// transmit START condition
 	TWCR0 = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
 	// wait for end of transmission
@@ -176,13 +170,10 @@ uint8_t i2c_start(uint8_t address)
 	while( !(TWCR0 & (1<<TWINT)) );
 	
 	// check if the device has acknowledged the READ / WRITE mode
-	uint8_t TWST = TWSR0 & 0xF8;
-	
-   if ((TWST != TW_MT_SLA_ACK) && (TWST != TW_MR_SLA_ACK)) return 1;
+	if ((TWSR0 & 0xF8) != TW_MT_DATA_ACK) return 1;
 	
 	return 0;
 }
-
 
 uint8_t i2c_write(uint8_t data)
 {
@@ -220,10 +211,9 @@ uint8_t i2c_read_nack(void)
 	return TWDR0;
 }
 
-
 uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length)
 {
-	if (i2c_start(address | I2C_WRITE)) return 1; // if I2c fails, break transmit...
+	if (i2c_start(address | I2C_WRITE)) return 1;
 	
 	for (uint16_t i = 0; i < length; i++)
 	{
@@ -237,7 +227,7 @@ uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length)
 
 uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 {
-	if (i2c_start(address | I2C_READ)) return 1; // if I2C fails, break
+	if (i2c_start(address | I2C_READ)) return 1;
 	
 	for (uint16_t i = 0; i < (length-1); i++)
 	{
@@ -252,7 +242,7 @@ uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 
 uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
 {
-	if (i2c_start(devaddr | I2C_WRITE)) return 1;
+	if (i2c_start(devaddr | 0x00)) return 1;
 
 	i2c_write(regaddr);
 
@@ -289,4 +279,7 @@ void i2c_stop(void)
 {
 	// transmit STOP condition
 	TWCR0 = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
+	while(!(TWCR0 & (1<<TWSTO)));
 }
+
+#pragma endregion
