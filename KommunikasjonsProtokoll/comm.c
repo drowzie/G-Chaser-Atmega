@@ -37,19 +37,15 @@ void spi_init_adc()
 void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 {
 	// while((PORTC & (0<<ADC_1_BUSY))); // When busy is high
-
-	PORTE &= ~(1<<ADC_READ_1); // low
 	cli(); // turn of interrupt
+	PORTE &= ~(1<<ADC_READ_1); // low
 	SPDR0 = datain; // Transmit data
 	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-	//while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
 	dataout[0] = SPDR0;	 // Get MSB
 	SPDR0 = 0x00; // transmit dummy byte
 	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 	dataout[1] = SPDR0;	 // Get MSB
-	
 	PORTE |= (1<<ADC_READ_1); // high
-	
 	// Start conversion on off
 	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
 	_delay_us(0.005);

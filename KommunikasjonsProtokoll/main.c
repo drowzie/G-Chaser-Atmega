@@ -20,7 +20,6 @@ Comments:
 #define BAUD 1200
 #include <util/setbaud.h>
 
-#define SYNC (uint16_t)0x6B90
 
 // FOR EEEPROM STORAGE //
 // #include <avr/eeprom.h>
@@ -46,15 +45,14 @@ typedef struct {
 } packet_data;
 
 circular_buf_t cbuf;
-packet_data pData;
-uint8_t array[200];
-
+packet_data  pData;
+uint8_t tempADC[2];
+uint8_t array[51];
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////// FUNCTIONS BELOW HERE //////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#pragma region Bufferzone
 
 // Truth statements for the circular buffer
 bool circular_buf_empty(circular_buf_t cbuf)
@@ -75,10 +73,10 @@ void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 	cbuf->head = (cbuf->head + 1) % cbuf->size; // Increase head and resets on 24%24 => 0
 	
 	// CRC UPDATER
-	if(!(pData->mainComm_Counter == pData->maxMainComms-1)) // Do not enter when CRC(Max main comm has been reached)
-	{
-		pData->crc16 = _crc_ccitt_update(pData->crc16, data); // Update the crc word.
-	}
+	//if(!(pData->mainComm_Counter == pData->maxMainComms-1)) // Do not enter when CRC(Max main comm has been reached)
+	//{
+		//pData->crc16 = _crc_ccitt_update(pData->crc16, data); // Update the crc word.
+	//}
 }
 
 int circular_buf_get(circular_buf_t * cbuf)
@@ -89,7 +87,6 @@ int circular_buf_get(circular_buf_t * cbuf)
 	return data;
 }
 
-#pragma endregion
 
 #define SCL         PORTC5
 #define SDA         PORTC4
@@ -117,12 +114,10 @@ void USART_Init()
 	UBRR0L = UBRRL_VALUE;
 	
 	/* Enable transmitter */
-	UCSR0B = (1<<TXEN0); // |(0<<UDRIE0);
+	UCSR0B = (1<<TXEN0)|(1<<UDRIE0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 }
-
-
 
 /*
 subCommPacket is the main method to circle through different HOUSEKEEPING channels.
@@ -133,36 +128,41 @@ Should be over 20 different channels.
 void subCommPacket(circular_buf_t * cbuf, packet_data * pData)
 {
 	if(pData->subComm_Counter == 0) {
-		circular_buf_put(cbuf,pData, 0x33);
+		circular_buf_put(cbuf,pData, 0xB0);
 		pData->subComm_Counter++;	
 	} else if(pData->subComm_Counter == 1){
-		circular_buf_put(cbuf,pData, 0x34);
+		circular_buf_put(cbuf,pData, 0xB1);
 		pData->subComm_Counter++;
 	} else if(pData->subComm_Counter == 2){
-		circular_buf_put(cbuf,pData, 0x34);
+		circular_buf_put(cbuf,pData, 0xB2);
 		pData->subComm_Counter++;
 	} else if(pData->subComm_Counter == 3) {
-		circular_buf_put(cbuf,pData, 0x34);
+		circular_buf_put(cbuf,pData, 0xB3);
 		pData->subComm_Counter++;
 	} else if(pData->subComm_Counter == 4) {
-		circular_buf_put(cbuf,pData, 0x34);
+		circular_buf_put(cbuf,pData, 0xB4);
 		pData->subComm_Counter++;
 	} else if(pData->subComm_Counter == 5) {
-		circular_buf_put(cbuf,pData, 0x34);
+		circular_buf_put(cbuf,pData, 0xB5);
 		pData->subComm_Counter++;
 	} else if(pData->subComm_Counter == 6) {
-		circular_buf_put(cbuf,pData, 0x34);
+		circular_buf_put(cbuf,pData, 0xB6);
 		pData->subComm_Counter++;
 	} else if(pData->subComm_Counter == 7) {
-		circular_buf_put(cbuf,pData, 0x34);
+		circular_buf_put(cbuf,pData, 0xB7);
 		pData->subComm_Counter++;
 	} else if(pData->subComm_Counter == 8) {
-		circular_buf_put(cbuf,pData, 0x34);
+		circular_buf_put(cbuf,pData, 0xB8);
 		pData->subComm_Counter = 0;
 	}
 }
 
 #pragma endregion
+
+ISR(USART0_UDRE_vect)
+{
+	UDR0 = circular_buf_get(&cbuf);
+}
 
 int main(void)
 {
@@ -171,37 +171,32 @@ int main(void)
 	cbuf.size = 51;
 	pData.mainComm_Counter = 0;
 	pData.subComm_Counter = 0;
-	pData.maxMainComms = 5;
 	pData.crc16 = 0xFFFF; // INITIAL CRC word	
 	 //When UART interrupt is turned on, it will instantly interrupt.
 	 //To prevent it from being stuck inside the loop. Fill the buffer with startup info.
-	for(int i = 0; i < 10; i++){
-	circular_buf_put(&cbuf,&pData,0xAA); // Initial value so bool full doesnt fuck up.
+	for(int i = 0; i < 4; i++)
+	{
+	circular_buf_put(&cbuf,&pData,0xEE);
 	}
-
+	
 	USART_Init();
 	Port_Init();
-	// For testing with ADC
-#pragma region test
-
 #pragma region ADCTEST
 	//spi_init_adc();
 	//uint8_t dataOut[2];
 	//uint8_t dataIn;
-	//dataIn = LTC1859_CH3;
+	//dataIn = LTC1859_CH2;
 	//while(1)
 	//{
-	//spiTransmitADC_1(dataOut,dataIn);
-	//UDR0 = 0xdF;
-	//while ( !( UCSR0A & (1<<UDRE0)) );
-	//UDR0 = dataOut[0];
-	//while ( !( UCSR0A & (1<<UDRE0)) );
-	//UDR0 = dataOut[1];
-	//while ( !( UCSR0A & (1<<UDRE0)) );
+		//spiTransmitADC_1(dataOut,dataIn);
+		//UDR0 = 0xdF;
+		//while ( !( UCSR0A & (1<<UDRE0)) );
+		//UDR0 = dataOut[0];
+		//while ( !( UCSR0A & (1<<UDRE0)) );
+		//UDR0 = dataOut[1];
+		//while ( !( UCSR0A & (1<<UDRE0)) );
 	//}
 #pragma endregion 
-
-#pragma endregion
 
 #pragma region I2CTest Commented out
 //i2c_init();
@@ -226,77 +221,40 @@ int main(void)
 
 	spi_init_dac();
 	// PCB1
-	spiTransmitDAC_1((DAC_B<<4 | 0x8), 0x00);
-	spiTransmitDAC_1((DAC_C<<4 | 0x8), 0x00);
-	spiTransmitDAC_1((DAC_D<<4 | 0x8), 0x00);
+	spiTransmitDAC_1((DAC_B<<4 | 0xF), 0xFF);
+	spiTransmitDAC_1((DAC_C<<4 | 0xF), 0xFF);
+	spiTransmitDAC_1((DAC_D<<4 | 0xF), 0xFF);
 	// PCB2
 	
 #pragma endregion
 
-
-#pragma region Packetformat
 	///* Replace with your application code */
-	uint8_t * tempADC;
-	spi_init_adc();
+	spi_init_adc(); 
  	sei();
 	while(1)
 	{
-		if(circular_buf_full(cbuf))
+		if (circular_buf_full(cbuf)){} 
+		else
 		{
-			// Do nothing when full
-		}
-		// PACKET FORMAT
-		else if(pData.mainComm_Counter == 0) // SYNC FIRST TWO
-		{
-			pData.crc16 = 0xFFFF;
-			circular_buf_put(&cbuf, &pData, (SYNC>>8));
-			circular_buf_put(&cbuf, &pData, SYNC);
-			pData.mainComm_Counter++;
-		} else if (pData.mainComm_Counter == 1) { // PACKETID			
-			circular_buf_put(&cbuf, &pData, pData.subComm_Counter);
-			pData.mainComm_Counter++;
-		} else if (pData.mainComm_Counter == 2) { // CH0 PCB1
-			spiTransmitADC_1(tempADC, LTC1859_CH0);	
-			circular_buf_put(&cbuf, &pData, tempADC[0]);			
-			circular_buf_put(&cbuf, &pData, tempADC[1]);
-			pData.mainComm_Counter++;
-		} else if (pData.mainComm_Counter == 3) { // CH1 change to PCB2
-			spiTransmitADC_1(tempADC, LTC1859_CH1);
-			circular_buf_put(&cbuf, &pData, tempADC[0]);
-			circular_buf_put(&cbuf, &pData, tempADC[1]);
-			pData.mainComm_Counter++;
-		} else if (pData.mainComm_Counter == 4) { // CH2 PCB1
-			spiTransmitADC_1(tempADC, LTC1859_CH2);
-			circular_buf_put(&cbuf, &pData, tempADC[0]);
-			circular_buf_put(&cbuf, &pData, tempADC[1]);
-			pData.mainComm_Counter++;
-		} else if (pData.mainComm_Counter == 5) { // CH3 change to PCB2							
-			spiTransmitADC_1(tempADC, LTC1859_CH3);
-			circular_buf_put(&cbuf, &pData, tempADC[0]);
-			circular_buf_put(&cbuf, &pData, tempADC[1]);
-			pData.mainComm_Counter++;
-		} else if (pData.mainComm_Counter == 6) { // CH4 PCB1
-			spiTransmitADC_1(tempADC, LTC1859_CH4);
-			circular_buf_put(&cbuf, &pData, tempADC[0]);
-			circular_buf_put(&cbuf, &pData, tempADC[1]);
-			pData.mainComm_Counter++;
-		} else if (pData.mainComm_Counter == 7) { // SUBCOMM	
-			subCommPacket(&cbuf, &pData);
-			pData.mainComm_Counter++;
-		} else if (pData.mainComm_Counter == 8) { // CRC packet
-			circular_buf_put(&cbuf, &pData, (pData.crc16>>8)); // upper 8 bits
-			circular_buf_put(&cbuf, &pData, (pData.crc16)); // lower 8 bits
-			pData.mainComm_Counter = 0;
-			
+			if(pData.mainComm_Counter == 0)
+			pData.mainComm_Counter) {
+				case 0: // SYNC
+					pData.crc16 = 0xFFFF;
+					circular_buf_put(&cbuf, &pData, 0x6B);
+					circular_buf_put(&cbuf, &pData, 0x90);
+					pData.mainComm_Counter++;
+					break;
+				case 1:
+					circular_buf_put(&cbuf, &pData, pData.mainComm_Counter);
+					pData.mainComm_Counter++;
+					break;
+				case 2:
+					spiTransmitADC_1(tempADC,LTC1859_CH2);
+					circular_buf_put(&cbuf, &pData, tempADC[0]);
+					circular_buf_put(&cbuf, &pData, tempADC[1]);
+					pData.mainComm_Counter = 2;
+					break;
+			}
 		}
 	}
-			}
-
-
-#pragma endregion
-
-ISR(USART0_UDRE_vect)
-{
-	UDR0 = circular_buf_get(&cbuf);
-	// UDR0 = 0xFF;
 }
