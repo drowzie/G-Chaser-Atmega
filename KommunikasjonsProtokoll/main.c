@@ -76,15 +76,10 @@ bool circular_buf_full(circular_buf_t cbuf)
 void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 {
 	uint16_t tmphead;
-	uint16_t txtail_tmp;
 	
-	tmphead = (cbuf->head + 1) & (UART_TX0_MAXBUFFER); 
-	do {
-		ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			txtail_tmp = cbuf->tail;
-		}
-	}
-	while (tmphead == txtail_tmp);
+	tmphead = (cbuf->head + 1) & UART_TX0_MAXBUFFER;
+	
+while (tmphead == cbuf->tail); /* wait for free space in buffer */
 	cbuf->buffer[tmphead] = data;
 	cbuf->head = tmphead;
 	
@@ -182,7 +177,7 @@ int main(void)
 		//while ( !( UCSR0A & (1<<UDRE0)) );
 	//}
 #pragma endregion 
-
+	
 #pragma region I2CTest Commented out
 //i2c_init();
 //
@@ -214,7 +209,9 @@ int main(void)
 #pragma endregion
 
 	///* Replace with your application code */
-	spi_init_adc(); 
+	// spi_init_adc(); 
+	uint8_t i = 0;
+	sei();
 	while(1)
 	{
 		switch (pData.mainComm_Counter) {
@@ -225,7 +222,7 @@ int main(void)
 				pData.mainComm_Counter++;
 				break;
 			case 1:
-				circular_buf_put(&cbuf, &pData, pData.mainComm_Counter);
+				circular_buf_put(&cbuf, &pData, i++);
 				pData.mainComm_Counter = 0;
 				break;
 		}
