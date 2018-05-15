@@ -16,6 +16,8 @@ Comments:
 #include <util/crc16.h>
 #include <util/delay.h>
 #include <util/twi.h>
+#include <util/atomic.h>
+
 // A more robust way for setting baudrates-- F_CPU is set inside comm.h
 #define BAUD 1200
 #include <util/setbaud.h>
@@ -30,11 +32,15 @@ Comments:
 //#define update_eeprom_word(address,value) eeprom_update_word ((uint16_t*)address,(uint16_t)value)
 
 
+/* Size of Buffer*/
+#define UART_BUFFER_SIZE 64
+#define UART_TX0_MAXBUFFER (UART_BUFFER_SIZE-1)
+
 typedef struct {
 	uint8_t volatile * buffer;
-	size_t  head;
-	size_t  tail;
-	size_t  size;
+	uint16_t  head;
+	uint16_t  tail;
+	uint16_t  size;
 } circular_buf_t;
 
 typedef struct {
@@ -47,7 +53,7 @@ typedef struct {
 circular_buf_t cbuf;
 packet_data  pData;
 uint8_t tempADC[2];
-uint8_t array[51];
+uint8_t array[UART_BUFFER_SIZE];
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////// FUNCTIONS BELOW HERE //////////////////////////////////////////////
@@ -69,22 +75,27 @@ bool circular_buf_full(circular_buf_t cbuf)
 // Put 8 bit data into cbuf buffer
 void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 {
-	cbuf->buffer[cbuf->head] = data; // Data added
-	cbuf->head = (cbuf->head + 1) % cbuf->size; // Increase head and resets on 24%24 => 0
+	uint16_t tmphead;
+	uint16_t txtail_tmp;
 	
-	// CRC UPDATER
-	//if(!(pData->mainComm_Counter == pData->maxMainComms-1)) // Do not enter when CRC(Max main comm has been reached)
-	//{
-		//pData->crc16 = _crc_ccitt_update(pData->crc16, data); // Update the crc word.
-	//}
+	tmphead = (cbuf->head + 1) & (UART_TX0_MAXBUFFER); 
+	do {
+		ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			txtail_tmp = cbuf->tail;
+		}
+	}
+	while (tmphead == txtail_tmp);
+	cbuf->buffer[tmphead] = data;
+	cbuf->head = tmphead;
+	
+	UCSR0B |= (1<<UDRIE0); // enable interrupt when buffer is increasing again.
 }
 
-int circular_buf_get(circular_buf_t * cbuf)
+
+void circular_buf_reset(circular_buf_t * cbuf)
 {
-	uint8_t data;
-	data = cbuf->buffer[cbuf->tail];
-	cbuf->tail = (cbuf->tail + 1) % cbuf->size; // Tail resets when it reaches buffer size.
-	return data;
+	cbuf->head = 0;
+	cbuf->tail = 0;
 }
 
 
@@ -124,63 +135,37 @@ subCommPacket is the main method to circle through different HOUSEKEEPING channe
 Should be over 20 different channels.
 */
 
-#pragma region subcomm
-void subCommPacket(circular_buf_t * cbuf, packet_data * pData)
+
+
+ISR(USART0_UDRE_vect)	
 {
-	if(pData->subComm_Counter == 0) {
-		circular_buf_put(cbuf,pData, 0xB0);
-		pData->subComm_Counter++;	
-	} else if(pData->subComm_Counter == 1){
-		circular_buf_put(cbuf,pData, 0xB1);
-		pData->subComm_Counter++;
-	} else if(pData->subComm_Counter == 2){
-		circular_buf_put(cbuf,pData, 0xB2);
-		pData->subComm_Counter++;
-	} else if(pData->subComm_Counter == 3) {
-		circular_buf_put(cbuf,pData, 0xB3);
-		pData->subComm_Counter++;
-	} else if(pData->subComm_Counter == 4) {
-		circular_buf_put(cbuf,pData, 0xB4);
-		pData->subComm_Counter++;
-	} else if(pData->subComm_Counter == 5) {
-		circular_buf_put(cbuf,pData, 0xB5);
-		pData->subComm_Counter++;
-	} else if(pData->subComm_Counter == 6) {
-		circular_buf_put(cbuf,pData, 0xB6);
-		pData->subComm_Counter++;
-	} else if(pData->subComm_Counter == 7) {
-		circular_buf_put(cbuf,pData, 0xB7);
-		pData->subComm_Counter++;
-	} else if(pData->subComm_Counter == 8) {
-		circular_buf_put(cbuf,pData, 0xB8);
-		pData->subComm_Counter = 0;
+	uint16_t tmptail;
+	
+	if(cbuf.head != cbuf.tail)
+	{
+		tmptail = (cbuf.tail + 1) & (cbuf.size-1);
+		cbuf.tail = tmptail;
+		UDR0 = cbuf.buffer[tmptail];
+	}	
+	else {
+		// When empty, disable the intterupt
+		UCSR0B &= ~(1<<UDRIE0);
 	}
-}
-
-#pragma endregion
-
-ISR(USART0_UDRE_vect)
-{
-	UDR0 = circular_buf_get(&cbuf);
+	
 }
 
 int main(void)
 {
 	// Struct defines
 	cbuf.buffer = array;
-	cbuf.size = 51;
+	cbuf.size = UART_BUFFER_SIZE;
 	pData.mainComm_Counter = 0;
-	pData.subComm_Counter = 0;
 	pData.crc16 = 0xFFFF; // INITIAL CRC word	
 	 //When UART interrupt is turned on, it will instantly interrupt.
 	 //To prevent it from being stuck inside the loop. Fill the buffer with startup info.
-	for(int i = 0; i < 4; i++)
-	{
-	circular_buf_put(&cbuf,&pData,0xEE);
-	}
-	
 	USART_Init();
 	Port_Init();
+	
 #pragma region ADCTEST
 	//spi_init_adc();
 	//uint8_t dataOut[2];
@@ -219,42 +204,30 @@ int main(void)
 
 #pragma region Set Grid Voltages
 
-	spi_init_dac();
-	// PCB1
-	spiTransmitDAC_1((DAC_B<<4 | 0xF), 0xFF);
-	spiTransmitDAC_1((DAC_C<<4 | 0xF), 0xFF);
-	spiTransmitDAC_1((DAC_D<<4 | 0xF), 0xFF);
-	// PCB2
+	//spi_init_dac();
+	//// PCB1
+	//spiTransmitDAC_1((DAC_B<<4 | 0xF), 0xFF);
+	//spiTransmitDAC_1((DAC_C<<4 | 0xF), 0xFF);
+	//spiTransmitDAC_1((DAC_D<<4 | 0xF), 0xFF);
+	//// PCB2
 	
 #pragma endregion
 
 	///* Replace with your application code */
 	spi_init_adc(); 
- 	sei();
 	while(1)
 	{
-		if (circular_buf_full(cbuf)){} 
-		else
-		{
-			if(pData.mainComm_Counter == 0)
-			pData.mainComm_Counter) {
-				case 0: // SYNC
-					pData.crc16 = 0xFFFF;
-					circular_buf_put(&cbuf, &pData, 0x6B);
-					circular_buf_put(&cbuf, &pData, 0x90);
-					pData.mainComm_Counter++;
-					break;
-				case 1:
-					circular_buf_put(&cbuf, &pData, pData.mainComm_Counter);
-					pData.mainComm_Counter++;
-					break;
-				case 2:
-					spiTransmitADC_1(tempADC,LTC1859_CH2);
-					circular_buf_put(&cbuf, &pData, tempADC[0]);
-					circular_buf_put(&cbuf, &pData, tempADC[1]);
-					pData.mainComm_Counter = 2;
-					break;
-			}
+		switch (pData.mainComm_Counter) {
+			case 0: // SYNC
+				pData.crc16 = 0xFFFF;
+				circular_buf_put(&cbuf, &pData, 0x6B);
+				circular_buf_put(&cbuf, &pData, 0x90);
+				pData.mainComm_Counter++;
+				break;
+			case 1:
+				circular_buf_put(&cbuf, &pData, pData.mainComm_Counter);
+				pData.mainComm_Counter = 0;
+				break;
 		}
 	}
 }
