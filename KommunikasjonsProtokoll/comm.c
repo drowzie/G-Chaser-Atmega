@@ -9,6 +9,7 @@
 #include <util/twi.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <util/atomic.h>
 
 // SPI defines - Not all ports are correctly set...
 #define PORT_SPI			PORTB // PORTB
@@ -37,8 +38,8 @@ void spi_init_adc()
 void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 {
 	// while((PORTC & (0<<ADC_1_BUSY))); // When busy is high
-	cli(); // turn of interrupt
 	PORTE &= ~(1<<ADC_READ_1); // low
+	ATOMIC_BLOCK(ATOMIC_FORCEON) {
 	SPDR0 = datain; // Transmit data
 	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 	dataout[0] = SPDR0;	 // Get MSB
@@ -46,11 +47,11 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 	dataout[1] = SPDR0;	 // Get MSB
 	PORTE |= (1<<ADC_READ_1); // high
+	}
 	// Start conversion on off
 	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
 	_delay_us(0.005);
 	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
-	sei();
 }
 
 

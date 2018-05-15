@@ -1,6 +1,6 @@
 /*
 Author: Christoffer Boothby
-Version: 0.0.0.1
+Version: 0.0.1.0
 Comments:
 */
 
@@ -33,14 +33,14 @@ Comments:
 
 
 /* Size of Buffer*/
-#define UART_BUFFER_SIZE 64
+#define UART_BUFFER_SIZE 128
 #define UART_TX0_MAXBUFFER (UART_BUFFER_SIZE-1)
 
 typedef struct {
-	uint8_t volatile * buffer;
-	uint16_t  head;
-	uint16_t  tail;
-	uint16_t  size;
+	uint8_t * buffer;
+	uint8_t  volatile head;
+	uint8_t  volatile tail;
+	uint8_t  size;
 } circular_buf_t;
 
 typedef struct {
@@ -52,7 +52,6 @@ typedef struct {
 
 circular_buf_t cbuf;
 packet_data  pData;
-uint8_t tempADC[2];
 uint8_t array[UART_BUFFER_SIZE];
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -120,7 +119,7 @@ void USART_Init()
 	UBRR0L = UBRRL_VALUE;
 	
 	/* Enable transmitter */
-	UCSR0B = (1<<TXEN0)|(1<<UDRIE0);
+	UCSR0B = (1<<TXEN0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 }
@@ -138,7 +137,7 @@ ISR(USART0_UDRE_vect)
 	
 	if(cbuf.head != cbuf.tail)
 	{
-		tmptail = (cbuf.tail + 1) & (cbuf.size-1);
+		tmptail = (cbuf.tail + 1) & UART_TX0_MAXBUFFER;
 		cbuf.tail = tmptail;
 		UDR0 = cbuf.buffer[tmptail];
 	}	
@@ -148,12 +147,33 @@ ISR(USART0_UDRE_vect)
 	}
 	
 }
+void packetFormat(circular_buf_t * cbuf,packet_data * pData) 
+{
+	uint8_t i = pData->mainComm_Counter;
+	uint8_t tempAdc[2];
+	switch(i){
+		case 0:
+			circular_buf_put(cbuf,pData,0x6B);
+			circular_buf_put(cbuf,pData,0x90);
+			i++;
+			break;
+		case 1:
+			spiTransmitADC_1(tempAdc,LTC1859_CH1);
+			circular_buf_put(cbuf,pData,tempAdc[0]);
+			circular_buf_put(cbuf,pData,tempAdc[1]);
+			i--;
+			break;
+	}
+	pData->mainComm_Counter = i;
+}
 
 int main(void)
 {
 	// Struct defines
 	cbuf.buffer = array;
 	cbuf.size = UART_BUFFER_SIZE;
+	cbuf.tail = 0;
+	cbuf.head = 0;
 	pData.mainComm_Counter = 0;
 	pData.crc16 = 0xFFFF; // INITIAL CRC word	
 	 //When UART interrupt is turned on, it will instantly interrupt.
@@ -199,32 +219,20 @@ int main(void)
 
 #pragma region Set Grid Voltages
 
-	//spi_init_dac();
-	//// PCB1
-	//spiTransmitDAC_1((DAC_B<<4 | 0xF), 0xFF);
-	//spiTransmitDAC_1((DAC_C<<4 | 0xF), 0xFF);
-	//spiTransmitDAC_1((DAC_D<<4 | 0xF), 0xFF);
-	//// PCB2
+	spi_init_dac();
+	// PCB1
+	spiTransmitDAC_1((DAC_B<<4 | 0x8), 0x00);
+	spiTransmitDAC_1((DAC_C<<4 | 0x8), 0x00);
+	spiTransmitDAC_1((DAC_D<<4 | 0x8), 0x00);
+	// PCB2
 	
 #pragma endregion
 
 	///* Replace with your application code */
-	// spi_init_adc(); 
-	uint8_t i = 0;
+	spi_init_adc();
 	sei();
 	while(1)
 	{
-		switch (pData.mainComm_Counter) {
-			case 0: // SYNC
-				pData.crc16 = 0xFFFF;
-				circular_buf_put(&cbuf, &pData, 0x6B);
-				circular_buf_put(&cbuf, &pData, 0x90);
-				pData.mainComm_Counter++;
-				break;
-			case 1:
-				circular_buf_put(&cbuf, &pData, i++);
-				pData.mainComm_Counter = 0;
-				break;
-		}
+		packetFormat(&cbuf,&pData);
 	}
 }
