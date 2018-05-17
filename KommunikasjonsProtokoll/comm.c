@@ -19,7 +19,20 @@
 #define DD_SCK				DDRB5  // Clock
 
 
-// Set up for ADC usage.
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
+
 void spi_init_adc()
 {	
 	// Output
@@ -34,19 +47,33 @@ void spi_init_adc()
 			
 	SPSR0 = (0<<SPI2X);  // Double Clock Rate
 }
+/*
+Method Name: spiTransmitADC_1
+----------------------------
+Purpose: To transmit over the SPI line to LTC1859 on PCB1.
+
+Argument: dataout - will recieve two bytes from the LTC1859
+datain - Channel byte which goes in to IC.
+
+returns: none
+
+error handling: None necessary, if SPI is broken. Returns FF
+
+*/
 
 void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 {
 	// while((PORTC & (0<<ADC_1_BUSY))); // When busy is high
+	
 	PORTE &= ~(1<<ADC_READ_1); // low
 	ATOMIC_BLOCK(ATOMIC_FORCEON) {
-	SPDR0 = datain; // Transmit data
-	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-	dataout[0] = SPDR0;	 // Get MSB
-	SPDR0 = 0x00; // transmit dummy byte
-	while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-	dataout[1] = SPDR0;	 // Get MSB
-	PORTE |= (1<<ADC_READ_1); // high
+		SPDR0 = datain; // Transmit data
+		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+		dataout[0] = SPDR0;	 // Get MSB
+		SPDR0 = 0x00; // transmit dummy byte
+		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+		dataout[1] = SPDR0;	 // Get MSB
+		PORTE |= (1<<ADC_READ_1); // high
 	}
 	// Start conversion on off
 	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
@@ -54,27 +81,54 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
 }
 
+/*
+Method Name: spiTransmitADC_2
+----------------------------
+Purpose: To transmit over the SPI line to LTC1859 on PCB1.
+
+Argument: dataout - will recieve two bytes from the LTC1859
+datain - Channel byte which goes in to IC.
+
+returns: none
+
+error handling: None necessary, if SPI is broken. Returns FF
+
+*/
 
 
-//void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
-//{
-	//uint8_t i;
-	//SPDR0 = datain; // Transmit data
-	//while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-	//PORTD &= ~(1 << ADV_CONVERSION_START_2); // set to 1
-	//_delay_us(0.0042); // Delay for 42ns++
-	//PORTD |= (0 << ADV_CONVERSION_START_2); // set to 0
-	//while((PORTB & (1<<ADC_2_BUSY))==0); // Wait for BUSY in ADC1859 to be set high.
-	//cli(); // stop intterupt, data recieved now is time important.
-	//PORTD &= ~(1 << ADC_READ_2); // Activate Read
-	//for (i = 0; i < 2; i++)
-	//{
-		//while(!(SPSR0 & (1<<SPIF)));	// Wait for reception complete.
-		//dataout[i] = SPDR0;
-	//}
-	//sei();
-//}
+void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
+{
+	// while((PORTC & (0<<ADC_1_BUSY))); // When busy is high
+	
+	PORTE &= ~(1<<ADC_READ_1); // low
+	ATOMIC_BLOCK(ATOMIC_FORCEON) {
+		SPDR0 = datain; // Transmit data
+		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+		dataout[0] = SPDR0;	 // Get MSB
+		SPDR0 = 0x00; // transmit dummy byte
+		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+		dataout[1] = SPDR0;	 // Get MSB
+		PORTE |= (1<<ADC_READ_1); // high
+	}
+	// Start conversion on off
+	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
+	_delay_us(0.005);
+	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
+}
 
+/*
+
+Method Name: 
+----------------------------
+Purpose: 
+
+Argument: 
+
+returns:
+
+error handling:
+
+*/
 
 
 void spi_init_dac()
@@ -92,13 +146,20 @@ void spi_init_dac()
 	SPSR0 = (0<<SPI2X);  // Double Clock Rate
 }
 
-/* Will set the voltages on the DAC8420 on PCB1
-For this method it requires an dacAdress with the upper 4 bits of the voltage settings
-Example(FULLSCALE):
-			uint8_t dacAdress;
-Transmit->	dacWord = (4<<DAC_B | 0xF);
-Transmit->  0xFF
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
 */
+
 void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData) 
 {
 		PORTC &= ~(1<<CS_DAC_1); // Chip Select go low
@@ -117,37 +178,80 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 		_delay_ms(1);
 }
 
-void spiTransmitDAC_2(uint8_t * dataout, uint8_t len) 
-{
-		uint8_t i;
-		
-		PORTB = (0<<CS_DAC_2)|(1<<LD_DAC_2); // Enable register input.		
-		
-		for(i = 0; i < len; i++) 
-		{
-			SPDR0 = dataout[i];
-			while((SPSR0 & (1<<SPIF))==0);
-		}
-		
-		PORTB = (1<<CS_DAC_2)|(0<<LD_DAC_2); // Stop register.	
-}
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
+
+//void spiTransmitDAC_2(uint8_t * dataout, uint8_t len) 
+//{
+		//PORTC &= ~(1<<CS_DAC_1); // Chip Select go low
+		//_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
+		//// Send data
+		//SPDR0 = dacAdress;
+		//while(!(SPSR0 & (1<<SPIF)));
+		//SPDR0 = dacData;
+		//while(!(SPSR0 & (1<<SPIF)));
+		//// End
+		//_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
+		//PORTC |= (1<<CS_DAC_1); // Chip Select go high
+		//// Strobe the Load Data pin
+		//PORTC &= ~(1<<LD_DAC_1); // Stop data in.
+		//PORTC |= (1<<LD_DAC_1);  // set to 1
+		//_delay_ms(1);
+//}
 
 
 #pragma region i2c
 
 // I2C Defines
-#define TWI_FREQ 1000
+#define TWI_FREQ 2000
 #define Prescaler 64
-#define TWBR_val ((((F_CPU / F_SCL) / Prescaler) - 16 ) / 2)
 
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
 
 void i2c_init(void)
 {
 	TWSR0 = (1<<TWPS1)|(1<<TWPS0);
 	TWBR0 = ((((F_CPU / TWI_FREQ) / Prescaler) - 16 ) / 2);
 	TWCR0 = 0;
-	// PORTC |= (1<<PORTC5)|(1<<PORTC4);
+	PORTC |= (1<<PORTC5)|(1<<PORTC4);
 }
+
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
 
 uint8_t i2c_start(uint8_t address)
 {
@@ -172,6 +276,20 @@ uint8_t i2c_start(uint8_t address)
 	return 0;
 }
 
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
+
 uint8_t i2c_write(uint8_t data)
 {
 	// load data into data register
@@ -185,6 +303,20 @@ uint8_t i2c_write(uint8_t data)
 	
 	return 0;
 }
+
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
 
 uint8_t i2c_read_ack(void)
 {
@@ -208,6 +340,20 @@ uint8_t i2c_read_nack(void)
 	return TWDR0;
 }
 
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
+
 uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length)
 {
 	if (i2c_start(address | I2C_WRITE)) return 1;
@@ -221,6 +367,20 @@ uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length)
 	
 	return 0;
 }
+
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
 
 uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 {
@@ -237,6 +397,20 @@ uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 	return 0;
 }
 
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
+
 uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
 {
 	if (i2c_start(devaddr | 0x00)) return 1;
@@ -252,6 +426,20 @@ uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t l
 
 	return 0;
 }
+
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
 
 uint8_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
 {
@@ -271,6 +459,20 @@ uint8_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t le
 
 	return 0;
 }
+
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
 
 void i2c_stop(void)
 {

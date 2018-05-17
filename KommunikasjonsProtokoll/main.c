@@ -22,7 +22,6 @@ Comments:
 #define BAUD 1200
 #include <util/setbaud.h>
 
-
 // FOR EEEPROM STORAGE //
 // #include <avr/eeprom.h>
 
@@ -36,6 +35,10 @@ Comments:
 #define UART_BUFFER_SIZE 128
 #define UART_TX0_MAXBUFFER (UART_BUFFER_SIZE-1)
 
+
+////////////////////////////////////////////////////////
+//////////////////// STRUCTS ///////////////////////////
+////////////////////////////////////////////////////////
 typedef struct {
 	uint8_t * buffer;
 	uint8_t  volatile head;
@@ -54,47 +57,49 @@ circular_buf_t cbuf;
 packet_data  pData;
 uint8_t array[UART_BUFFER_SIZE];
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////// FUNCTIONS BELOW HERE //////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
+///////////////////////FUNCTIONS////////////////////////
+////////////////////////////////////////////////////////
+/*
 
+Method Name:
+----------------------------
+Purpose:
 
-// Truth statements for the circular buffer
-bool circular_buf_empty(circular_buf_t cbuf)
-{
-	// We define empty as head == tail
-	return (cbuf.head == cbuf.tail);
-}
+Argument:
 
-bool circular_buf_full(circular_buf_t cbuf)
-{
-	return ((cbuf.head + 1) % cbuf.size) == cbuf.tail;
-}
+returns:
 
-// Put 8 bit data into cbuf buffer
+error handling:
+
+*/
+
 void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 {
 	uint16_t tmphead;
 	
-	tmphead = (cbuf->head + 1) & UART_TX0_MAXBUFFER;
+	tmphead = (cbuf->head + 1) & UART_TX0_MAXBUFFER; 
 	
-while (tmphead == cbuf->tail); /* wait for free space in buffer */
+	while (tmphead == cbuf->tail); /* wait for free space in buffer */
 	cbuf->buffer[tmphead] = data;
 	cbuf->head = tmphead;
 	
 	UCSR0B |= (1<<UDRIE0); // enable interrupt when buffer is increasing again.
 }
 
+/*
 
-void circular_buf_reset(circular_buf_t * cbuf)
-{
-	cbuf->head = 0;
-	cbuf->tail = 0;
-}
+Method Name:
+----------------------------
+Purpose:
 
+Argument:
 
-#define SCL         PORTC5
-#define SDA         PORTC4
+returns:
+
+error handling:
+
+*/
 
 void Port_Init()
 {
@@ -112,6 +117,21 @@ void Port_Init()
 	
 	PORTB |= (1<<LD_DAC_2);
 }
+
+/*
+
+Method Name:
+----------------------------
+Purpose:
+
+Argument:
+
+returns:
+
+error handling:
+
+*/
+
 void USART_Init()
 {
 	/* Set baud rate */
@@ -128,8 +148,6 @@ void USART_Init()
 subCommPacket is the main method to circle through different HOUSEKEEPING channels.
 Should be over 20 different channels.
 */
-
-
 
 ISR(USART0_UDRE_vect)	
 {
@@ -152,16 +170,52 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 	uint8_t i = pData->mainComm_Counter;
 	uint8_t tempAdc[2];
 	switch(i){
-		case 0:
+		case 0: // SYNC
 			circular_buf_put(cbuf,pData,0x6B);
 			circular_buf_put(cbuf,pData,0x90);
 			i++;
 			break;
 		case 1:
+			spiTransmitADC_1(tempAdc,LTC1859_CH0);
+			circular_buf_put(cbuf,pData,tempAdc[0]);
+			circular_buf_put(cbuf,pData,tempAdc[1]);
+			i++;
+			break;
+		case 2:
 			spiTransmitADC_1(tempAdc,LTC1859_CH1);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
-			i--;
+			i++;
+			break;
+		case 3:
+			spiTransmitADC_1(tempAdc,LTC1859_CH2);
+			circular_buf_put(cbuf,pData,tempAdc[0]);
+			circular_buf_put(cbuf,pData,tempAdc[1]);
+			i++;
+			break;
+		case 4:
+			spiTransmitADC_1(tempAdc,LTC1859_CH3);
+			circular_buf_put(cbuf,pData,tempAdc[0]);
+			circular_buf_put(cbuf,pData,tempAdc[1]);
+			i++;
+			break;
+		case 5:
+			spiTransmitADC_1(tempAdc,LTC1859_CH4);
+			circular_buf_put(cbuf,pData,tempAdc[0]);
+			circular_buf_put(cbuf,pData,tempAdc[1]);
+			i++;
+			break;
+		case 6: // SUBCOMM
+			spiTransmitADC_1(tempAdc,LTC1859_CH5);
+			circular_buf_put(cbuf,pData,tempAdc[0]);
+			circular_buf_put(cbuf,pData,tempAdc[1]);
+			i++;
+			break;
+		case 7: // CRC
+			spiTransmitADC_1(tempAdc,LTC1859_CH6);
+			circular_buf_put(cbuf,pData,tempAdc[0]);
+			circular_buf_put(cbuf,pData,tempAdc[1]);
+			i = 0;
 			break;
 	}
 	pData->mainComm_Counter = i;
@@ -175,49 +229,30 @@ int main(void)
 	cbuf.tail = 0;
 	cbuf.head = 0;
 	pData.mainComm_Counter = 0;
-	pData.crc16 = 0xFFFF; // INITIAL CRC word	
-	 //When UART interrupt is turned on, it will instantly interrupt.
-	 //To prevent it from being stuck inside the loop. Fill the buffer with startup info.
+	pData.crc16 = 0xFFFF;
+
+
 	USART_Init();
 	Port_Init();
 	
-#pragma region ADCTEST
-	//spi_init_adc();
-	//uint8_t dataOut[2];
-	//uint8_t dataIn;
-	//dataIn = LTC1859_CH2;
+#pragma region i2cTEST
+	//i2c_init();
+	//uint8_t volatile status;
 	//while(1)
 	//{
-		//spiTransmitADC_1(dataOut,dataIn);
-		//UDR0 = 0xdF;
+		//status = i2c_start(0xCE|0x00);
+		//status = i2c_write(0x01);
+		//status = i2c_start(0xCE|0x01);
+		//status = i2c_read_ack();
+		//i2c_stop();
+		//UDR0 = status;
 		//while ( !( UCSR0A & (1<<UDRE0)) );
-		//UDR0 = dataOut[0];
-		//while ( !( UCSR0A & (1<<UDRE0)) );
-		//UDR0 = dataOut[1];
-		//while ( !( UCSR0A & (1<<UDRE0)) );
+		//_delay_ms(100);
+		//
 	//}
-#pragma endregion 
-	
-#pragma region I2CTest Commented out
-//i2c_init();
-//
-//uint8_t recievedData[2];
-//uint8_t status;
-//while(1){
-	//
-	//status = i2c_start(0xD2|0x00);
-	//status = i2c_write(0x01);
-	//status = i2c_start(0x01|0x01);
-	//status = i2c_read_ack();
-	//i2c_stop();
-	//
-	//UDR0 = status;
-	//while ( !( UCSR0A & (1<<UDRE0)) );
-
-//}
 #pragma endregion
 
-#pragma region Set Grid Voltages
+#pragma region SetGridVoltages
 
 	spi_init_dac();
 	// PCB1
@@ -230,6 +265,7 @@ int main(void)
 
 	///* Replace with your application code */
 	spi_init_adc();
+	uint8_t test[2];
 	sei();
 	while(1)
 	{
