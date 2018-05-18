@@ -192,23 +192,23 @@ error handling:
 
 */
 
-//void spiTransmitDAC_2(uint8_t * dataout, uint8_t len) 
-//{
-		//PORTC &= ~(1<<CS_DAC_1); // Chip Select go low
-		//_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
-		//// Send data
-		//SPDR0 = dacAdress;
-		//while(!(SPSR0 & (1<<SPIF)));
-		//SPDR0 = dacData;
-		//while(!(SPSR0 & (1<<SPIF)));
-		//// End
-		//_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
-		//PORTC |= (1<<CS_DAC_1); // Chip Select go high
-		//// Strobe the Load Data pin
-		//PORTC &= ~(1<<LD_DAC_1); // Stop data in.
-		//PORTC |= (1<<LD_DAC_1);  // set to 1
-		//_delay_ms(1);
-//}
+void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
+{
+	PORTC &= ~(1<<CS_DAC_2); // Chip Select go low
+	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
+	// Send data
+	SPDR0 = dacAdress;
+	while(!(SPSR0 & (1<<SPIF)));
+	SPDR0 = dacData;
+	while(!(SPSR0 & (1<<SPIF)));
+	// End
+	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
+	PORTC |= (1<<CS_DAC_2); // Chip Select go high
+	// Strobe the Load Data pin
+	PORTC &= ~(1<<LD_DAC_2); // Stop data in.
+	PORTC |= (1<<LD_DAC_2);  // set to 1
+	_delay_ms(1);
+}
 
 
 #pragma region i2c

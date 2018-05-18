@@ -1,6 +1,6 @@
 /*
 Author: Christoffer Boothby
-Version: 0.0.1.0
+Version: 0.0.1.2
 Comments:
 */
 
@@ -29,7 +29,6 @@ Comments:
 //#define read_eeprom_word(address) eeprom_read_word ((const uint16_t*)address)
 //#define write_eeprom_word(address,value) eeprom_write_word ((uint16_t*)address,(uint16_t)value)
 //#define update_eeprom_word(address,value) eeprom_update_word ((uint16_t*)address,(uint16_t)value)
-
 
 /* Size of Buffer*/
 #define UART_BUFFER_SIZE 128
@@ -104,18 +103,19 @@ error handling:
 void Port_Init()
 {
 	// Datadirections only, to set, use PORTxn, 0 = Input, 1 = Output
-	// DDRB = (0<<ADC_2_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_2);
+	DDRB = (0<<ADC_2_BUSY)|(1<<CS_DAC_2)|(1<<LD_DAC_2);
 	DDRC = (1<<CS_DAC_1)|(1<<LD_DAC_1)|(0<<ADC_1_BUSY);
 	DDRD = (1<<ADC_READ_2)|(1<<ADV_CONVERSION_START_2);
 	DDRE = (1<<ADC_READ_1)|(1<<ADV_CONVERSION_START_1);
 
 	// Start configurations
-	PORTE |= (1<<ADC_READ_1); // set default high
-	PORTE &= ~(1<<ADV_CONVERSION_START_1); // Default low
 	
+	// ADC STARTUP PIN CONFIGURATIONS
+	PORTD = (1<<ADC_READ_2)|(0<<ADV_CONVERSION_START_2);
+	PORTE = (1<<ADC_READ_1)|(0<<ADV_CONVERSION_START_1);
+	// DAC STARTUP PIN CONFIGURATION
 	PORTC |= (1<<LD_DAC_1)|(1<<CS_DAC_1);
-	
-	PORTB |= (1<<LD_DAC_2);
+	PORTB = (1<<LD_DAC_2)|(1<<CS_DAC_2);
 }
 
 /*
@@ -144,10 +144,6 @@ void USART_Init()
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 }
 
-/*
-subCommPacket is the main method to circle through different HOUSEKEEPING channels.
-Should be over 20 different channels.
-*/
 
 ISR(USART0_UDRE_vect)	
 {
@@ -165,6 +161,70 @@ ISR(USART0_UDRE_vect)
 	}
 	
 }
+
+void subCommFormat(circular_buf_t * cbuf, packet_data * pData) 
+{
+	uint8_t x = pData->subComm_Counter;
+	uint8_t tempVal[2];
+	switch(x){
+		case 0:
+			spiTransmitADC_1(tempVal,LTC1859_CH3);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 1:
+			spiTransmitADC_2(tempVal,LTC1859_CH3);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 2:
+			spiTransmitADC_1(tempVal,LTC1859_CH5);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 3:
+			spiTransmitADC_2(tempVal,LTC1859_CH7);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 4:
+			spiTransmitADC_1(tempVal,LTC1859_CH7);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 5:
+			spiTransmitADC_1(tempVal,LTC1859_CH0);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 6:
+			spiTransmitADC_1(tempVal,LTC1859_CH1);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 7:
+			spiTransmitADC_2(tempVal,LTC1859_CH0);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 8:
+			spiTransmitADC_2(tempVal,LTC1859_CH1);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x = 0;
+			break;		
+	}
+	pData->subComm_Counter = x;
+}
+
 void packetFormat(circular_buf_t * cbuf,packet_data * pData) 
 {
 	uint8_t i = pData->mainComm_Counter;
@@ -176,42 +236,44 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 			i++;
 			break;
 		case 1:
-			spiTransmitADC_1(tempAdc,LTC1859_CH0);
-			circular_buf_put(cbuf,pData,tempAdc[0]);
-			circular_buf_put(cbuf,pData,tempAdc[1]);
+			circular_buf_put(cbuf,pData,pData->subComm_Counter);
 			i++;
 			break;
 		case 2:
-			spiTransmitADC_1(tempAdc,LTC1859_CH1);
-			circular_buf_put(cbuf,pData,tempAdc[0]);
-			circular_buf_put(cbuf,pData,tempAdc[1]);
-			i++;
-			break;
-		case 3:
 			spiTransmitADC_1(tempAdc,LTC1859_CH2);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
 			break;
-		case 4:
-			spiTransmitADC_1(tempAdc,LTC1859_CH3);
+		case 3:
+			spiTransmitADC_2(tempAdc,LTC1859_CH2);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
 			break;
-		case 5:
+		case 4:
 			spiTransmitADC_1(tempAdc,LTC1859_CH4);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
 			break;
-		case 6: // SUBCOMM
-			spiTransmitADC_1(tempAdc,LTC1859_CH5);
+		case 5:
+			spiTransmitADC_2(tempAdc,LTC1859_CH6);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
 			break;
-		case 7: // CRC
+		case 6:
+			spiTransmitADC_1(tempAdc,LTC1859_CH6);
+			circular_buf_put(cbuf,pData,tempAdc[0]);
+			circular_buf_put(cbuf,pData,tempAdc[1]);
+			i++;
+			break;
+		case 7: // SUBCOMM
+			subCommFormat(cbuf,pData);
+			i++;
+			break;
+		case 8: // CRC
 			spiTransmitADC_1(tempAdc,LTC1859_CH6);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
@@ -220,6 +282,8 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 	}
 	pData->mainComm_Counter = i;
 }
+
+uint8_t testvalue;
 
 int main(void)
 {
@@ -256,19 +320,32 @@ int main(void)
 
 	spi_init_dac();
 	// PCB1
-	spiTransmitDAC_1((DAC_B<<4 | 0x8), 0x00);
-	spiTransmitDAC_1((DAC_C<<4 | 0x8), 0x00);
-	spiTransmitDAC_1((DAC_D<<4 | 0x8), 0x00);
+	spiTransmitDAC_1((DAC_B<<4 | G1_BIAS_1>>8), (uint8_t)G1_BIAS_1);
+	spiTransmitDAC_1((DAC_C<<4 | G2_BIAS_1>>8), (uint8_t)G2_BIAS_1);
+	spiTransmitDAC_1((DAC_D<<4 | G3_BIAS_1>>8), (uint8_t)G3_BIAS_1);
 	// PCB2
+	spiTransmitDAC_2((DAC_B<<4 | G1_BIAS_2>>8), (uint8_t)G1_BIAS_2);
+	spiTransmitDAC_2((DAC_C<<4 | G2_BIAS_2>>8), (uint8_t)G2_BIAS_2);
+	spiTransmitDAC_2((DAC_D<<4 | G3_BIAS_2>>8), (uint8_t)G3_BIAS_2);
 	
 #pragma endregion
-
 	///* Replace with your application code */
 	spi_init_adc();
-	uint8_t test[2];
-	sei();
-	while(1)
-	{
-		packetFormat(&cbuf,&pData);
+	uint8_t testData[2];
+	while(1) {
+		
+		spiTransmitADC_1(testData,LTC1859_CH0);
+		UDR0 = testData[0];
+		while (!( UCSR0A & (1<<UDRE0)));
+		UDR0 = testData[1];
+		while (!( UCSR0A & (1<<UDRE0)));
+		_delay_ms(1);
 	}
+	
+	
+	//sei(); // enable global interrupt - run after INITS
+	//while(1)
+	//{
+		//packetFormat(&cbuf,&pData);
+	//}
 }
