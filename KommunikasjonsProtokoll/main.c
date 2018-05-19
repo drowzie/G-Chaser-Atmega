@@ -1,9 +1,25 @@
-/*
-Author: Christoffer Boothby
-Version: 0.0.1.2
-Comments:
-*/
+/*! 
+ *\file main.c	
+ *\
+ *\
+ */
 
+/*! \mainpage My Personal Index Page
+ *
+ *\section intro_sec Introduction
+ *\author Christoffer Boothby
+ *\version 0.0.1.2
+ *\date 2018
+ *\copyright GNU Public License.
+ *Main program for the G-Chaser Project using Atmega328PB
+ *
+ * \section install_sec Installation
+ *
+ *
+ * \subsection step1 Step 1: Opening the bxo
+ *
+ * etc...
+ */
 
 
 // UART settings
@@ -59,19 +75,7 @@ uint8_t array[UART_BUFFER_SIZE];
 ////////////////////////////////////////////////////////
 ///////////////////////FUNCTIONS////////////////////////
 ////////////////////////////////////////////////////////
-/*
 
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
 
 void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 {
@@ -86,19 +90,14 @@ void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 	UCSR0B |= (1<<UDRIE0); // enable interrupt when buffer is increasing again.
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
+/*! \fn void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
+ * \brief Putting 1 byte into the buffer
+ * \param[in] data The data that goes into the buffer.
+ * \param[in] cbuf refrence to the circular buffer.
+ * \param[in] pdata refrence for pdata.
+ * \return None.
 */
+
 
 void Port_Init()
 {
@@ -118,18 +117,10 @@ void Port_Init()
 	PORTB = (1<<LD_DAC_2)|(1<<CS_DAC_2);
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
+/*! \fn void Port_Init()
+ * \brief Port initalization function.
+ * \param None.
+ * \return None.
 */
 
 void USART_Init()
@@ -143,6 +134,12 @@ void USART_Init()
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 }
+
+/*! \fn void USART_INIT()
+ * \brief USART init of BAUD
+ * \param None.
+ * \return None.
+*/
 
 
 ISR(USART0_UDRE_vect)	
@@ -329,7 +326,6 @@ int main(void)
 	spiTransmitDAC_2((DAC_D<<4 | G3_BIAS_2>>8), (uint8_t)G3_BIAS_2);
 	
 #pragma endregion
-	///* Replace with your application code */
 	spi_init_adc();
 	uint8_t testData[2];
 	while(1) {

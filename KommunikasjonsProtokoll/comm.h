@@ -1,8 +1,9 @@
-/*
- * comm.h
- *	
- * 
- */ 
+/*! \file comm.h	
+	\brief All the defines for the COMM.c usage.
+ *Author: Christoffer Boothby.
+ *Version: 0.0.1.2.
+ *Comments:.
+ */
 
 #pragma once
 

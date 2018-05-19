@@ -1,7 +1,9 @@
-/*
- * comm.c
- *  Author: chris
- */ 
+/*! \file comm.c	
+	\brief All the configurations for SPI and I2C
+ *Author: Christoffer Boothby.
+ *Version: 0.0.1.2.
+ *Comments:.
+ */
 
 #include <stdint.h>
 #include "comm.h" 
