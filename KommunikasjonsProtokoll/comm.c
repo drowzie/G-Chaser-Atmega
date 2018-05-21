@@ -100,22 +100,22 @@ error handling: None necessary, if SPI is broken. Returns FF
 
 void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 {
-	// while((PORTC & (0<<ADC_1_BUSY))); // When busy is high
+	// while((PORTC & (0<<ADC_2_BUSY))); // When busy is high
 	
-	PORTE &= ~(1<<ADC_READ_1); // low
-	ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	PORTE &= ~(1<<ADC_READ_2); // low
+	//ATOMIC_BLOCK(ATOMIC_FORCEON) {
 		SPDR0 = datain; // Transmit data
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 		dataout[0] = SPDR0;	 // Get MSB
 		SPDR0 = 0x00; // transmit dummy byte
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 		dataout[1] = SPDR0;	 // Get MSB
-		PORTE |= (1<<ADC_READ_1); // high
-	}
+		PORTE |= (1<<ADC_READ_2); // high
+	//}
 	// Start conversion on off
-	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
+	PORTE |= (1 << ADV_CONVERSION_START_2); // set convst 1
 	_delay_us(0.005);
-	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
+	PORTE &= ~(1 << ADV_CONVERSION_START_2); // set to 0
 }
 
 /*

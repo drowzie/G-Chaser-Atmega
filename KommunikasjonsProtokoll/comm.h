@@ -44,13 +44,13 @@
 #define LTC1859_CH7						0b11110100
 
 // Voltage settings for DAC8420
-#define G1_BIAS_1						(uint16_t)0xFFF
-#define G2_BIAS_1						(uint16_t)0xFFF
-#define G3_BIAS_1						(uint16_t)0xFFF
+#define G1_BIAS_1						(uint16_t)0x800
+#define G2_BIAS_1						(uint16_t)0x800
+#define G3_BIAS_1						(uint16_t)0x800
 
-#define G1_BIAS_2						(uint16_t)0xFFF
-#define G2_BIAS_2						(uint16_t)0xFFF
-#define G3_BIAS_2						(uint16_t)0xFFF
+#define G1_BIAS_2						(uint16_t)0x800
+#define G2_BIAS_2						(uint16_t)0x800
+#define G3_BIAS_2						(uint16_t)0x800
 
 // DAC8420 ADRESSES for channels
 #define DAC_B							0x4

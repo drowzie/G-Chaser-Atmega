@@ -8,7 +8,7 @@
  *
  *\section intro_sec Introduction
  *\author Christoffer Boothby
- *\version 0.0.1.2
+ *\version 0.2.0 - Semi-Closed Beta
  *\date 2018
  *\copyright GNU Public License.
  *Main program for the G-Chaser Project using Atmega328PB
@@ -35,16 +35,9 @@
 #include <util/atomic.h>
 
 // A more robust way for setting baudrates-- F_CPU is set inside comm.h
-#define BAUD 1200
+#define BAUD 230400
 #include <util/setbaud.h>
 
-// FOR EEEPROM STORAGE //
-// #include <avr/eeprom.h>
-
-// Storing to EEPROM functions if necessary
-//#define read_eeprom_word(address) eeprom_read_word ((const uint16_t*)address)
-//#define write_eeprom_word(address,value) eeprom_write_word ((uint16_t*)address,(uint16_t)value)
-//#define update_eeprom_word(address,value) eeprom_update_word ((uint16_t*)address,(uint16_t)value)
 
 /* Size of Buffer*/
 #define UART_BUFFER_SIZE 128
@@ -65,7 +58,7 @@ typedef struct {
 	uint8_t volatile mainComm_Counter; // Choose which packet to be sent out.
 	uint8_t volatile subComm_Counter; // Choose which of the subcomms to be used and sent out.
 	uint8_t volatile maxMainComms; // For CRC updater to skip when sending in CRC.
-	uint16_t crc16;
+	uint16_t volatile crc16;
 } packet_data;
 
 circular_buf_t cbuf;
@@ -88,6 +81,13 @@ void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 	cbuf->head = tmphead;
 	
 	UCSR0B |= (1<<UDRIE0); // enable interrupt when buffer is increasing again.
+	
+	// Update CRC only when above ID(#2 and below CRC)
+	if(pData->mainComm_Counter > 1 && pData->mainComm_Counter < pData->maxMainComms)
+	{
+		pData->crc16 = _crc_ccitt_update(pData->crc16, data);
+	}
+	
 }
 
 /*! \fn void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
@@ -243,25 +243,25 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 			i++;
 			break;
 		case 3:
-			spiTransmitADC_2(tempAdc,LTC1859_CH2);
-			circular_buf_put(cbuf,pData,tempAdc[0]);
-			circular_buf_put(cbuf,pData,tempAdc[1]);
-			i++;
-			break;
-		case 4:
 			spiTransmitADC_1(tempAdc,LTC1859_CH4);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
 			break;
+		case 4:
+			spiTransmitADC_1(tempAdc,LTC1859_CH3);
+			circular_buf_put(cbuf,pData,tempAdc[0]);
+			circular_buf_put(cbuf,pData,tempAdc[1]);
+			i++;
+			break;
 		case 5:
-			spiTransmitADC_2(tempAdc,LTC1859_CH6);
+			spiTransmitADC_1(tempAdc,LTC1859_CH5);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
 			break;
 		case 6:
-			spiTransmitADC_1(tempAdc,LTC1859_CH6);
+			spiTransmitADC_2(tempAdc,LTC1859_CH7);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
@@ -271,16 +271,16 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 			i++;
 			break;
 		case 8: // CRC
-			spiTransmitADC_1(tempAdc,LTC1859_CH6);
-			circular_buf_put(cbuf,pData,tempAdc[0]);
-			circular_buf_put(cbuf,pData,tempAdc[1]);
+			circular_buf_put(cbuf,pData,(pData->crc16>>8));
+			circular_buf_put(cbuf,pData,(uint8_t)pData->crc16);
 			i = 0;
+			pData->crc16 = 0xFFFF; // reset when done
 			break;
 	}
 	pData->mainComm_Counter = i;
 }
 
-uint8_t testvalue;
+
 
 int main(void)
 {
@@ -290,8 +290,8 @@ int main(void)
 	cbuf.tail = 0;
 	cbuf.head = 0;
 	pData.mainComm_Counter = 0;
+	pData.maxMainComms = 8;
 	pData.crc16 = 0xFFFF;
-
 
 	USART_Init();
 	Port_Init();
@@ -320,28 +320,28 @@ int main(void)
 	spiTransmitDAC_1((DAC_B<<4 | G1_BIAS_1>>8), (uint8_t)G1_BIAS_1);
 	spiTransmitDAC_1((DAC_C<<4 | G2_BIAS_1>>8), (uint8_t)G2_BIAS_1);
 	spiTransmitDAC_1((DAC_D<<4 | G3_BIAS_1>>8), (uint8_t)G3_BIAS_1);
-	// PCB2
+	 //PCB2
 	spiTransmitDAC_2((DAC_B<<4 | G1_BIAS_2>>8), (uint8_t)G1_BIAS_2);
 	spiTransmitDAC_2((DAC_C<<4 | G2_BIAS_2>>8), (uint8_t)G2_BIAS_2);
 	spiTransmitDAC_2((DAC_D<<4 | G3_BIAS_2>>8), (uint8_t)G3_BIAS_2);
 	
 #pragma endregion
 	spi_init_adc();
-	uint8_t testData[2];
-	while(1) {
-		
-		spiTransmitADC_1(testData,LTC1859_CH0);
-		UDR0 = testData[0];
-		while (!( UCSR0A & (1<<UDRE0)));
-		UDR0 = testData[1];
-		while (!( UCSR0A & (1<<UDRE0)));
-		_delay_ms(1);
-	}
-	
-	
-	//sei(); // enable global interrupt - run after INITS
-	//while(1)
-	//{
-		//packetFormat(&cbuf,&pData);
+	//uint8_t testData[2];
+	//while(1) {
+		//
+		//spiTransmitADC_2(testData,LTC1859_CH1);
+		//UDR0 = 0x9C;
+		//while ( !( UCSR0A & (1<<UDRE0)) ){}
+		//UDR0 = testData[0];
+		//while ( !( UCSR0A & (1<<UDRE0)) ){}
+		//UDR0 = testData[1];
+		//while ( !( UCSR0A & (1<<UDRE0)) ){}
 	//}
+	//
+	sei(); // enable global interrupt - run after INITS
+	while(1)
+	{
+		packetFormat(&cbuf,&pData);
+	}
 }
