@@ -1,26 +1,25 @@
 /*! 
  *\file main.c	
- *\
- *\
  */
 
-/*! \mainpage My Personal Index Page
- *
+/*!
  *\section intro_sec Introduction
- *\author Christoffer Boothby
- *\version 0.2.0 - Semi-Closed Beta
+ *\author Christoffer Boothby and James Alexander Cowie
+ *\version 0.2.0
  *\date 2018
  *\copyright GNU Public License.
- *Main program for the G-Chaser Project using Atmega328PB
- *
- * \section install_sec Installation
- *
- *
- * \subsection step1 Step 1: Opening the bxo
- *
- * etc...
  */
 
+/* Comments:
+ * This C code is made for G-Chaser project on the "EL-BOKS" card, made by Erlend Restad.
+ * It is possible to implement this software on a different microcontroller or same type
+ * but it is highly recommended to change pins.
+ * Commenting in this software is primarily made for the editors, possible future editors
+ * and for easy understanding on the thesis. Requires prior knowledge or understanding of 
+ * the datasheet for the ICs explained on the two lines below, and datasheet for Atmega328PB.
+ * SPI Communication is made for the IC LTC1859(ADC) and DAC8420(DAC).
+ * I2C Communication is made for the IC LTC4151.
+ * 
 
 // UART settings
 #include "comm.h"
@@ -68,7 +67,6 @@ uint8_t array[UART_BUFFER_SIZE];
 ////////////////////////////////////////////////////////
 ///////////////////////FUNCTIONS////////////////////////
 ////////////////////////////////////////////////////////
-
 
 void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 {
@@ -142,13 +140,14 @@ void USART_Init()
 */
 
 
+// Interrupt handler
 ISR(USART0_UDRE_vect)	
 {
 	uint16_t tmptail;
 	
 	if(cbuf.head != cbuf.tail)
 	{
-		tmptail = (cbuf.tail + 1) & UART_TX0_MAXBUFFER;
+		tmptail = (cbuf.tail + 1) & UART_TX0_MAXBUFFER; // Reset when reaching maximum buffer size
 		cbuf.tail = tmptail;
 		UDR0 = cbuf.buffer[tmptail];
 	}	
@@ -221,6 +220,12 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 	}
 	pData->subComm_Counter = x;
 }
+/*! \fn void subCommFormat() 
+ * \brief subcomm packet, will repeat itself
+ * \param cbuf Use the buffer.
+ * \param pData For using subcomm ID
+ * \return None.
+*/
 
 void packetFormat(circular_buf_t * cbuf,packet_data * pData) 
 {
@@ -243,25 +248,25 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 			i++;
 			break;
 		case 3:
-			spiTransmitADC_1(tempAdc,LTC1859_CH4);
+			spiTransmitADC_1(tempAdc,LTC1859_CH2);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
 			break;
 		case 4:
-			spiTransmitADC_1(tempAdc,LTC1859_CH3);
+			spiTransmitADC_1(tempAdc,LTC1859_CH4);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
 			break;
 		case 5:
-			spiTransmitADC_1(tempAdc,LTC1859_CH5);
+			spiTransmitADC_1(tempAdc,LTC1859_CH6);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
 			break;
 		case 6:
-			spiTransmitADC_2(tempAdc,LTC1859_CH7);
+			spiTransmitADC_2(tempAdc,LTC1859_CH6);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
@@ -280,7 +285,12 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 	pData->mainComm_Counter = i;
 }
 
-
+/*! \fn void packetFormat() 
+ * \brief Main packet format, will repeat itself
+ * \param cbuf Use the buffer.
+ * \param pData For using subcomm ID
+ * \return None.
+*/
 
 int main(void)
 {

@@ -11,7 +11,7 @@
 #define COMM_H_
 #include <stdint.h>
 
-#define F_CPU (14745600UL) // Need to be changed when deployed on our own
+#define F_CPU (14745600UL) // Physical clock speed
 
 // Defines for ports on the SPI settings
 	//PCB 1

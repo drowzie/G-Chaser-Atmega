@@ -1,9 +1,0 @@
-\indexentry{circular\+\_\+buf\+\_\+t@{circular\+\_\+buf\+\_\+t}|hyperpage}{7}
-\indexentry{packet\+\_\+data@{packet\+\_\+data}|hyperpage}{7}
-\indexentry{comm.\+c@{comm.\+c}|hyperpage}{9}
-\indexentry{comm.\+h@{comm.\+h}|hyperpage}{10}
-\indexentry{main.\+c@{main.\+c}|hyperpage}{11}
-\indexentry{main.\+c@{main.\+c}!circular\+\_\+buf\+\_\+put@{circular\+\_\+buf\+\_\+put}|hyperpage}{12}
-\indexentry{circular\+\_\+buf\+\_\+put@{circular\+\_\+buf\+\_\+put}!main.\+c@{main.\+c}|hyperpage}{12}
-\indexentry{main.\+c@{main.\+c}!Port\+\_\+\+Init@{Port\+\_\+\+Init}|hyperpage}{12}
-\indexentry{Port\+\_\+\+Init@{Port\+\_\+\+Init}!main.\+c@{main.\+c}|hyperpage}{12}

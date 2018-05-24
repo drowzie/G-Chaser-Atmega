@@ -21,20 +21,6 @@
 #define DD_SCK				DDRB5  // Clock
 
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
-
 void spi_init_adc()
 {	
 	// Output
@@ -49,19 +35,8 @@ void spi_init_adc()
 			
 	SPSR0 = (0<<SPI2X);  // Double Clock Rate
 }
-/*
-Method Name: spiTransmitADC_1
-----------------------------
-Purpose: To transmit over the SPI line to LTC1859 on PCB1.
 
-Argument: dataout - will recieve two bytes from the LTC1859
-datain - Channel byte which goes in to IC.
 
-returns: none
-
-error handling: None necessary, if SPI is broken. Returns FF
-
-*/
 
 void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 {
@@ -83,18 +58,11 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
 }
 
-/*
-Method Name: spiTransmitADC_2
-----------------------------
-Purpose: To transmit over the SPI line to LTC1859 on PCB1.
-
-Argument: dataout - will recieve two bytes from the LTC1859
-datain - Channel byte which goes in to IC.
-
-returns: none
-
-error handling: None necessary, if SPI is broken. Returns FF
-
+/*! \fn void spiTransmitADC_1 
+ * \brief Transmitting to LTC1859.
+ * \param dataout Two bytes of recieved data from LTC1859.
+ * \param datain adress to be sent in.
+ * \return None.
 */
 
 
@@ -118,20 +86,6 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 	PORTE &= ~(1 << ADV_CONVERSION_START_2); // set to 0
 }
 
-/*
-
-Method Name: 
-----------------------------
-Purpose: 
-
-Argument: 
-
-returns:
-
-error handling:
-
-*/
-
 
 void spi_init_dac()
 {
@@ -148,19 +102,6 @@ void spi_init_dac()
 	SPSR0 = (0<<SPI2X);  // Double Clock Rate
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
 
 void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData) 
 {
@@ -180,18 +121,11 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 		_delay_ms(1);
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
+/*! \fn void spiTransmitDAC_1 
+ * \brief Setting grid voltages on DAC8420
+ * \param dacAdress First 8 bits of dacAdress and upper 4 bits of voltage
+ * \param dacData lower byte of voltage
+ * \return None.
 */
 
 void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
@@ -215,23 +149,11 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 
 #pragma region i2c
 
+// A detailed guide about using I2C and these functions is seen in datasheet for ATMEGA328PB
 // I2C Defines
 #define TWI_FREQ 2000
 #define Prescaler 64
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
 
 void i2c_init(void)
 {
@@ -241,19 +163,6 @@ void i2c_init(void)
 	PORTC |= (1<<PORTC5)|(1<<PORTC4);
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
 
 uint8_t i2c_start(uint8_t address)
 {
@@ -278,19 +187,6 @@ uint8_t i2c_start(uint8_t address)
 	return 0;
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
 
 uint8_t i2c_write(uint8_t data)
 {
@@ -306,19 +202,6 @@ uint8_t i2c_write(uint8_t data)
 	return 0;
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
 
 uint8_t i2c_read_ack(void)
 {
@@ -342,20 +225,16 @@ uint8_t i2c_read_nack(void)
 	return TWDR0;
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
-
+void i2c_stop(void)
+{
+	// transmit STOP condition
+	TWCR0 = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
+	while(!(TWCR0 & (1<<TWSTO)));
+}
+#pragma region Untested functions
+//////////////////////////////////////////////////////////////////////////
+///////////////////////Following functions is untested////////////////////
+//////////////////////////////////////////////////////////////////////////
 uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length)
 {
 	if (i2c_start(address | I2C_WRITE)) return 1;
@@ -370,19 +249,6 @@ uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length)
 	return 0;
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
 
 uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 {
@@ -399,19 +265,6 @@ uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
 	return 0;
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
 
 uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
 {
@@ -429,19 +282,6 @@ uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t l
 	return 0;
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
 
 uint8_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
 {
@@ -462,25 +302,6 @@ uint8_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t le
 	return 0;
 }
 
-/*
-
-Method Name:
-----------------------------
-Purpose:
-
-Argument:
-
-returns:
-
-error handling:
-
-*/
-
-void i2c_stop(void)
-{
-	// transmit STOP condition
-	TWCR0 = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
-	while(!(TWCR0 & (1<<TWSTO)));
-}
+#pragma endregion
 
 #pragma endregion

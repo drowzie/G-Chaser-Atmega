@@ -38,7 +38,6 @@ SUBDIRS :=
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS +=  \
 ../comm.c \
-../Error.c \
 ../main.c
 
 
@@ -50,22 +49,18 @@ ASM_SRCS +=
 
 OBJS +=  \
 comm.o \
-Error.o \
 main.o
 
 OBJS_AS_ARGS +=  \
 comm.o \
-Error.o \
 main.o
 
 C_DEPS +=  \
 comm.d \
-Error.d \
 main.d
 
 C_DEPS_AS_ARGS +=  \
 comm.d \
-Error.d \
 main.d
 
 OUTPUT_FILE_PATH +=KommunikasjonsProtokoll.elf
@@ -82,8 +77,6 @@ LINKER_SCRIPT_DEP+=
 
 
 # AVR32/GNU C Compiler
-
-
 
 
 
