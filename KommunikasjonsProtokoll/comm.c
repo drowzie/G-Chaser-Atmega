@@ -1,8 +1,7 @@
 /*! \file comm.c	
 	\brief All the configurations for SPI and I2C
- *Author: Christoffer Boothby.
- *Version: 0.0.1.2.
- *Comments:.
+ *Author: Christoffer Boothby and James Alexander Cowie.
+ *Comments:
  */
 
 #include <stdint.h>
@@ -151,7 +150,7 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 
 // A detailed guide about using I2C and these functions is seen in datasheet for ATMEGA328PB
 // I2C Defines
-#define TWI_FREQ 2000
+#define TWI_FREQ 1000
 #define Prescaler 64
 
 
@@ -159,149 +158,71 @@ void i2c_init(void)
 {
 	TWSR0 = (1<<TWPS1)|(1<<TWPS0);
 	TWBR0 = ((((F_CPU / TWI_FREQ) / Prescaler) - 16 ) / 2);
-	TWCR0 = 0;
 	PORTC |= (1<<PORTC5)|(1<<PORTC4);
 }
 
-
-uint8_t i2c_start(uint8_t address)
+void TWIStart(void)
 {
-	// transmit START condition
-	TWCR0 = (1<<TWINT) | (1<<TWSTA) | (1<<TWEN);
-	// wait for end of transmission
-	while( !(TWCR0 & (1<<TWINT)) );
-	
-	// check if the start condition was successfully transmitted
-	if((TWSR0 & 0xF8) != TW_START){ return 1; }
-	
-	// load slave address into data register
-	TWDR0 = address;
-	// start transmission of address
-	TWCR0 = (1<<TWINT) | (1<<TWEN);
-	// wait for end of transmission
-	while( !(TWCR0 & (1<<TWINT)) );
-	
-	// check if the device has acknowledged the READ / WRITE mode
-	if ((TWSR0 & 0xF8) != TW_MT_DATA_ACK) return 1;
-	
-	return 0;
+	TWCR0 = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
+	while ((TWCR0 & (1<<TWINT)) == 0);
+}
+//send stop signal
+void TWIStop(void)
+{
+	TWCR0 = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN);
 }
 
-
-uint8_t i2c_write(uint8_t data)
+void TWIWrite(uint8_t u8data)
 {
-	// load data into data register
-	TWDR0 = data;
-	// start transmission of data
-	TWCR0 = (1<<TWINT) | (1<<TWEN);
-	// wait for end of transmission
-	while( !(TWCR0 & (1<<TWINT)) );
-	
-	if( (TWSR0 & 0xF8) != TW_MT_DATA_ACK ){ return 1; }
-	
-	return 0;
+	TWDR0 = u8data;
+	TWCR0 = (1<<TWINT)|(1<<TWEN);
+	while ((TWCR0 & (1<<TWINT)) == 0);
 }
 
-
-uint8_t i2c_read_ack(void)
+uint8_t TWIReadACK(void)
 {
-	
-	// start TWI module and acknowledge data after reception
-	TWCR0 = (1<<TWINT) | (1<<TWEN) | (1<<TWEA);
-	// wait for end of transmission
-	while( !(TWCR0 & (1<<TWINT)) );
-	// return received data from TWDR
+	TWCR0 = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);
+	while ((TWCR0 & (1<<TWINT)) == 0);
 	return TWDR0;
 }
-
-uint8_t i2c_read_nack(void)
+//read byte with NACK
+uint8_t TWIReadNACK(void)
 {
-	
-	// start receiving without acknowledging reception
-	TWCR0 = (1<<TWINT) | (1<<TWEN);
-	// wait for end of transmission
-	while( !(TWCR0 & (1<<TWINT)) );
-	// return received data from TWDR
+	TWCR0 = (1<<TWINT)|(1<<TWEN);
+	while ((TWCR0 & (1<<TWINT)) == 0);
 	return TWDR0;
 }
-
-void i2c_stop(void)
+uint8_t TWIGetStatus(void)
 {
-	// transmit STOP condition
-	TWCR0 = (1<<TWINT) | (1<<TWEN) | (1<<TWSTO);
-	while(!(TWCR0 & (1<<TWSTO)));
+	uint8_t status;
+	//mask status
+	status = TWSR0 & 0xF8;
+	return status;
 }
-#pragma region Untested functions
-//////////////////////////////////////////////////////////////////////////
-///////////////////////Following functions is untested////////////////////
-//////////////////////////////////////////////////////////////////////////
-uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length)
+uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout) 
 {
-	if (i2c_start(address | I2C_WRITE)) return 1;
+	TWIStart();
+	if (TWIGetStatus() != TW_START) // check for start
+		{return Error;}
+	TWIWrite(address|TW_WRITE);
+	if (TWIGetStatus() != TW_MT_SLA_ACK) // check for ack
+		{return Error;}
+	TWIWrite(reg);
+	if (TWIGetStatus() != TW_MT_DATA_ACK) // check if data has been transmitted and ack recieved
+		{return Error;}
+	TWIStart();
+	if (TWIGetStatus() != TW_REP_START) // check if data has been transmitted and ack recieved
+		{return Error;}
+	TWIWrite(address|TW_READ);
+	if (TWIGetStatus() != TW_MR_SLA_ACK) // 
+		{return Error;}
+	dataout[0] = TWIReadNACK();
+	if (TWIGetStatus() != TW_MR_DATA_NACK)
+		{return Error;}
+	TWIStop();
 	
-	for (uint16_t i = 0; i < length; i++)
-	{
-		if (i2c_write(data[i])) return 1;
-	}
-	
-	i2c_stop();
-	
-	return 0;
+	return Success;
 }
-
-
-uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length)
-{
-	if (i2c_start(address | I2C_READ)) return 1;
-	
-	for (uint16_t i = 0; i < (length-1); i++)
-	{
-		data[i] = i2c_read_ack();
-	}
-	data[(length-1)] = i2c_read_nack();
-	
-	i2c_stop();
-	
-	return 0;
-}
-
-
-uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
-{
-	if (i2c_start(devaddr | 0x00)) return 1;
-
-	i2c_write(regaddr);
-
-	for (uint16_t i = 0; i < length; i++)
-	{
-		if (i2c_write(data[i])) return 1;
-	}
-
-	i2c_stop();
-
-	return 0;
-}
-
-
-uint8_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length)
-{
-	if (i2c_start(devaddr)) return 1;
-
-	i2c_write(regaddr);
-
-	if (i2c_start(devaddr | 0x01)) return 1;
-
-	for (uint16_t i = 0; i < (length-1); i++)
-	{
-		data[i] = i2c_read_ack();
-	}
-	data[(length-1)] = i2c_read_nack();
-
-	i2c_stop();
-
-	return 0;
-}
-
 #pragma endregion
 
 #pragma endregion

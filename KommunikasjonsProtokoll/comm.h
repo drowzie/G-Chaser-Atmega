@@ -1,8 +1,7 @@
 /*! \file comm.h	
 	\brief All the defines for the COMM.c usage.
- *Author: Christoffer Boothby.
- *Version: 0.0.1.2.
- *Comments:.
+ *Author: Christoffer Boothby and James Alexander Cowie
+ *Comments:
  */
 
 #pragma once
@@ -66,6 +65,8 @@
 #define I2C_READ						0x01
 #define I2C_WRITE						0x00
 
+enum State {Error, Success};
+
 //SPI functions
 void spi_init_dac();
 void spi_init_adc();
@@ -80,14 +81,11 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData);
 
 //TWI/I2C functions.
 void i2c_init(void);
-uint8_t i2c_start(uint8_t address);
-uint8_t i2c_write(uint8_t data);
-uint8_t i2c_read_ack(void);
-uint8_t i2c_read_nack(void);
-uint8_t i2c_transmit(uint8_t address, uint8_t* data, uint16_t length);
-uint8_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length);
-uint8_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length);
-uint8_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data, uint16_t length);
-void i2c_stop(void);
+void TWIStart(void);
+void TWIWrite(uint8_t u8data);
+uint8_t TWIReadACK(void);
+uint8_t TWIReadNACK(void);
+uint8_t TWIGetStatus(void);
 
+uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout);
 #endif /* COMM_H_ */

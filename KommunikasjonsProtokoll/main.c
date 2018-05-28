@@ -5,7 +5,7 @@
 /*!
  *\section intro_sec Introduction
  *\author Christoffer Boothby and James Alexander Cowie
- *\version 0.2.0
+ *\version 0.3.0
  *\date 2018
  *\copyright GNU Public License.
  */
@@ -19,7 +19,8 @@
  * the datasheet for the ICs explained on the two lines below, and datasheet for Atmega328PB.
  * SPI Communication is made for the IC LTC1859(ADC) and DAC8420(DAC).
  * I2C Communication is made for the IC LTC4151.
- * 
+ *
+ */
 
 // UART settings
 #include "comm.h"
@@ -60,6 +61,7 @@ typedef struct {
 	uint16_t volatile crc16;
 } packet_data;
 
+	
 circular_buf_t cbuf;
 packet_data  pData;
 uint8_t array[UART_BUFFER_SIZE];
@@ -302,25 +304,26 @@ int main(void)
 	pData.mainComm_Counter = 0;
 	pData.maxMainComms = 8;
 	pData.crc16 = 0xFFFF;
-
+	
 	USART_Init();
 	Port_Init();
 	
 #pragma region i2cTEST
-	//i2c_init();
-	//uint8_t volatile status;
-	//while(1)
-	//{
-		//status = i2c_start(0xCE|0x00);
-		//status = i2c_write(0x01);
-		//status = i2c_start(0xCE|0x01);
-		//status = i2c_read_ack();
-		//i2c_stop();
-		//UDR0 = status;
-		//while ( !( UCSR0A & (1<<UDRE0)) );
-		//_delay_ms(100);
-		//
-	//}
+	uint8_t  status[2];
+	i2c_init();
+	while(1)
+	{
+		if(PWMReadByte(0xD2,0x02, status) == Error)
+		{
+			UDR0 = 0x32;
+			while ( !( UCSR0A & (1<<UDRE0)) );
+			TWCR0 = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN);
+		}
+		UDR0 = status[0];
+		while ( !( UCSR0A & (1<<UDRE0)) );
+		_delay_ms(10);
+		
+	}
 #pragma endregion
 
 #pragma region SetGridVoltages
@@ -349,9 +352,9 @@ int main(void)
 		//while ( !( UCSR0A & (1<<UDRE0)) ){}
 	//}
 	//
-	sei(); // enable global interrupt - run after INITS
-	while(1)
-	{
-		packetFormat(&cbuf,&pData);
-	}
+	//sei(); // enable global interrupt - run after INITS
+	//while(1)
+	//{
+		//packetFormat(&cbuf,&pData);
+	//}
 }
