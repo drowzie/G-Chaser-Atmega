@@ -5,7 +5,7 @@
 /*!
  *\section intro_sec Introduction
  *\author Christoffer Boothby and James Alexander Cowie
- *\version 0.3.0
+ *\version 0.3.1
  *\date 2018
  *\copyright GNU Public License.
  */
@@ -33,6 +33,7 @@
 #include <util/delay.h>
 #include <util/twi.h>
 #include <util/atomic.h>
+#include <avr/wdt.h>
 
 // A more robust way for setting baudrates-- F_CPU is set inside comm.h
 #define BAUD 230400
@@ -214,7 +215,43 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			x++;
 			break;
 		case 8:
+			twiDataHandler(VDIG,TWIVOLT, tempVal);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 9:
 			spiTransmitADC_2(tempVal,LTC1859_CH1);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 10:
+			twiDataHandler(VDIG,TWICURRENT, tempVal);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 11:
+			twiDataHandler(VAPLUS,TWIVOLT, tempVal);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 12:
+			twiDataHandler(VAPLUS,TWICURRENT, tempVal);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 13:
+			twiDataHandler(VAMINUS,TWIVOLT, tempVal);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 14:
+			twiDataHandler(VAMINUS,TWICURRENT, tempVal);	
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
 			x = 0;
@@ -309,25 +346,19 @@ int main(void)
 	Port_Init();
 	
 #pragma region i2cTEST
-	uint8_t  status[2];
-	i2c_init();
-	while(1)
-	{
-		if(PWMReadByte(0xD2,0x02, status) == Error)
-		{
-			UDR0 = 0x32;
-			while ( !( UCSR0A & (1<<UDRE0)) );
-			TWCR0 = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN);
-		}
-		UDR0 = status[0];
-		while ( !( UCSR0A & (1<<UDRE0)) );
-		_delay_ms(10);
-		
-	}
+	// 	i2c_init();
+	//uint8_t  twiTemp[2];
+	//while(1)
+	//{ twiDataHandler(VDIG,voltage, twiTemp);
+		//UDR0 = twiTemp[0];
+		//while ( !( UCSR0A & (1<<UDRE0)) );
+		//UDR0 = twiTemp[1];
+		//while ( !( UCSR0A & (1<<UDRE0)) );
+		//_delay_ms(1);
+	//}
 #pragma endregion
 
-#pragma region SetGridVoltages
-
+	// Grid voltages
 	spi_init_dac();
 	// PCB1
 	spiTransmitDAC_1((DAC_B<<4 | G1_BIAS_1>>8), (uint8_t)G1_BIAS_1);
@@ -337,12 +368,13 @@ int main(void)
 	spiTransmitDAC_2((DAC_B<<4 | G1_BIAS_2>>8), (uint8_t)G1_BIAS_2);
 	spiTransmitDAC_2((DAC_C<<4 | G2_BIAS_2>>8), (uint8_t)G2_BIAS_2);
 	spiTransmitDAC_2((DAC_D<<4 | G3_BIAS_2>>8), (uint8_t)G3_BIAS_2);
-	
-#pragma endregion
+
 	spi_init_adc();
+	i2c_init();
+#pragma region TestADC
 	//uint8_t testData[2];
-	//while(1) {
-		//
+	//while(1) 
+	//{
 		//spiTransmitADC_2(testData,LTC1859_CH1);
 		//UDR0 = 0x9C;
 		//while ( !( UCSR0A & (1<<UDRE0)) ){}
@@ -351,10 +383,10 @@ int main(void)
 		//UDR0 = testData[1];
 		//while ( !( UCSR0A & (1<<UDRE0)) ){}
 	//}
-	//
-	//sei(); // enable global interrupt - run after INITS
-	//while(1)
-	//{
-		//packetFormat(&cbuf,&pData);
-	//}
+#pragma endregion	
+	sei(); // enable global interrupt - run after INITS
+	while(1)
+	{
+		packetFormat(&cbuf,&pData);
+	}
 }

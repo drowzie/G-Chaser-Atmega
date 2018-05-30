@@ -56,14 +56,15 @@
 #define DAC_C							0x8
 #define DAC_D							0xC
 
-// I2C Devices
-#define U7_ADDR							0xD2
-#define U8_ADDR							0xCE
-#define U9_ADDR							0xDE
+// LTC4151 Power monitor
+#define TWIVOLT							0x02
+#define TWICURRENT						0x00
 
-// I2C Register addresses
-#define I2C_READ						0x01
-#define I2C_WRITE						0x00
+// I2C Devices
+#define	VDIG							0xD2
+#define VAPLUS							0xCE
+#define VAMINUS							0xDE
+
 
 enum State {Error, Success};
 
@@ -88,4 +89,5 @@ uint8_t TWIReadNACK(void);
 uint8_t TWIGetStatus(void);
 
 uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout);
+void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout);
 #endif /* COMM_H_ */

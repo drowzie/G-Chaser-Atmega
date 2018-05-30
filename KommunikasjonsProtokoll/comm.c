@@ -70,7 +70,7 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 	// while((PORTC & (0<<ADC_2_BUSY))); // When busy is high
 	
 	PORTE &= ~(1<<ADC_READ_2); // low
-	//ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	ATOMIC_BLOCK(ATOMIC_FORCEON) {
 		SPDR0 = datain; // Transmit data
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 		dataout[0] = SPDR0;	 // Get MSB
@@ -78,7 +78,7 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 		dataout[1] = SPDR0;	 // Get MSB
 		PORTE |= (1<<ADC_READ_2); // high
-	//}
+	}
 	// Start conversion on off
 	PORTE |= (1 << ADV_CONVERSION_START_2); // set convst 1
 	_delay_us(0.005);
@@ -104,20 +104,20 @@ void spi_init_dac()
 
 void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData) 
 {
-		PORTC &= ~(1<<CS_DAC_1); // Chip Select go low
-		_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
-		// Send data
-		SPDR0 = dacAdress;
-		while(!(SPSR0 & (1<<SPIF)));
-		SPDR0 = dacData;
-		while(!(SPSR0 & (1<<SPIF)));
-		// End
-		_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
-		PORTC |= (1<<CS_DAC_1); // Chip Select go high
-		// Strobe the Load Data pin
-		PORTC &= ~(1<<LD_DAC_1); // Stop data in.
-		PORTC |= (1<<LD_DAC_1);  // set to 1
-		_delay_ms(1);
+	PORTC &= ~(1<<CS_DAC_1); // Chip Select go low
+	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
+	// Send data
+	SPDR0 = dacAdress;
+	while(!(SPSR0 & (1<<SPIF)));
+	SPDR0 = dacData;
+	while(!(SPSR0 & (1<<SPIF)));
+	// End
+	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
+	PORTC |= (1<<CS_DAC_1); // Chip Select go high
+	// Strobe the Load Data pin
+	PORTC &= ~(1<<LD_DAC_1); // Stop data in.
+	PORTC |= (1<<LD_DAC_1);  // set to 1
+	_delay_ms(1);
 }
 
 /*! \fn void spiTransmitDAC_1 
@@ -150,9 +150,8 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 
 // A detailed guide about using I2C and these functions is seen in datasheet for ATMEGA328PB
 // I2C Defines
-#define TWI_FREQ 1000
+#define TWI_FREQ 1500
 #define Prescaler 64
-
 
 void i2c_init(void)
 {
@@ -201,28 +200,43 @@ uint8_t TWIGetStatus(void)
 }
 uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout) 
 {
-	TWIStart();
-	if (TWIGetStatus() != TW_START) // check for start
-		{return Error;}
-	TWIWrite(address|TW_WRITE);
-	if (TWIGetStatus() != TW_MT_SLA_ACK) // check for ack
-		{return Error;}
-	TWIWrite(reg);
-	if (TWIGetStatus() != TW_MT_DATA_ACK) // check if data has been transmitted and ack recieved
-		{return Error;}
-	TWIStart();
-	if (TWIGetStatus() != TW_REP_START) // check if data has been transmitted and ack recieved
-		{return Error;}
-	TWIWrite(address|TW_READ);
-	if (TWIGetStatus() != TW_MR_SLA_ACK) // 
-		{return Error;}
-	dataout[0] = TWIReadNACK();
-	if (TWIGetStatus() != TW_MR_DATA_NACK)
-		{return Error;}
-	TWIStop();
+	ATOMIC_BLOCK(ATOMIC_FORCEON){ // Making sure the interrupt doesn't break reading
+		TWIStart();
+		if (TWIGetStatus() != TW_START) // check for start
+			{return Error;}
+		TWIWrite(address|TW_WRITE);
+		if (TWIGetStatus() != TW_MT_SLA_ACK) // check for ack
+			{return Error;}
+		TWIWrite(reg);
+		if (TWIGetStatus() != TW_MT_DATA_ACK) // check if data has been transmitted and ack recieved
+			{return Error;}
+		TWIStart();
+		if (TWIGetStatus() != TW_REP_START) // check if data has been transmitted and ack recieved
+			{return Error;}
+		TWIWrite(address|TW_READ);
+		if (TWIGetStatus() != TW_MR_SLA_ACK)    // Master reciever mode ack
+			{return Error;}
+		dataout[0] = TWIReadACK();				// Get the first value of register: 8MSB
+		if (TWIGetStatus() != TW_MR_DATA_ACK)	// Master recieve data ack
+			{return Error;}
+		dataout[1] = TWIReadNACK();				// Get the next value of register: 4LSB
+		if (TWIGetStatus() != TW_MR_DATA_NACK)  // Master recieve nack
+			{return Error;}
+		TWIStop();
+	}
 	
 	return Success;
 }
+
+void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout)
+{
+	if(PWMReadByte(address,reg, dataout) == Error) // IF ERROR
+	{		
+		dataout[0] = 0xFF;						
+		dataout[1] = 0xFF;
+		TWCR0 = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN); // send stop condition
+	}
+};
 #pragma endregion
 
 #pragma endregion
