@@ -88,7 +88,6 @@ void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 	{
 		pData->crc16 = _crc_ccitt_update(pData->crc16, data);
 	}
-	
 }
 
 /*! \fn void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
@@ -116,6 +115,7 @@ void Port_Init()
 	// DAC STARTUP PIN CONFIGURATION
 	PORTC |= (1<<LD_DAC_1)|(1<<CS_DAC_1);
 	PORTB = (1<<LD_DAC_2)|(1<<CS_DAC_2);
+	wdt_reset();
 }
 
 /*! \fn void Port_Init()
@@ -134,6 +134,7 @@ void USART_Init()
 	UCSR0B = (1<<TXEN0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
+	wdt_reset();
 }
 
 /*! \fn void USART_INIT()
@@ -221,7 +222,7 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			x++;
 			break;
 		case 9:
-			spiTransmitADC_2(tempVal,LTC1859_CH1);
+			spiTransmitADC_2(tempVal,LTC1859_CH1); 
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
 			x++;
@@ -333,6 +334,7 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 
 int main(void)
 {
+	watchdog_enable(); // enable watchdog timer System reset
 	// Struct defines
 	cbuf.buffer = array;
 	cbuf.size = UART_BUFFER_SIZE;
@@ -344,7 +346,7 @@ int main(void)
 	
 	USART_Init();
 	Port_Init();
-	
+	// For testing one I2C channel
 #pragma region i2cTEST
 	// 	i2c_init();
 	//uint8_t  twiTemp[2];
@@ -360,7 +362,7 @@ int main(void)
 
 	// Grid voltages
 	spi_init_dac();
-	// PCB1
+	// PCB1					   // (Grid#_bias_pcb#)
 	spiTransmitDAC_1((DAC_B<<4 | G1_BIAS_1>>8), (uint8_t)G1_BIAS_1);
 	spiTransmitDAC_1((DAC_C<<4 | G2_BIAS_1>>8), (uint8_t)G2_BIAS_1);
 	spiTransmitDAC_1((DAC_D<<4 | G3_BIAS_1>>8), (uint8_t)G3_BIAS_1);
@@ -371,6 +373,7 @@ int main(void)
 
 	spi_init_adc();
 	i2c_init();
+	// For testing one ADC channel
 #pragma region TestADC
 	//uint8_t testData[2];
 	//while(1) 

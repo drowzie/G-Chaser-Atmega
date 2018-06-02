@@ -11,6 +11,18 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include <util/atomic.h>
+#include <avr/wdt.h>
+
+
+
+// Watchdog timer
+
+void watchdog_enable()
+{
+	WDTCSR = (1<<WDE)|(0<<WDP3)|(0<<WDP2)|(0<<WDP1)|(0<<WDP0);
+	wdt_enable(WDTO_15MS);
+	wdt_reset();
+}
 
 // SPI defines - Not all ports are correctly set...
 #define PORT_SPI			PORTB // PORTB
@@ -31,8 +43,9 @@ void spi_init_adc()
 			(0<<SPR1)|(1<<SPR0)| // Spi clock rate -- fosc/16
 			(0<<CPOL)|	// Clock polarity // 1 for DAC | 0 for ADC
 			(0<<CPHA)); // Clock phase    // 1 for DAC | 0 for ADC
-			
+
 	SPSR0 = (0<<SPI2X);  // Double Clock Rate
+	wdt_reset();
 }
 
 
@@ -55,6 +68,7 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
 	_delay_us(0.005);
 	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
+	wdt_reset();
 }
 
 /*! \fn void spiTransmitADC_1 
@@ -83,6 +97,7 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 	PORTE |= (1 << ADV_CONVERSION_START_2); // set convst 1
 	_delay_us(0.005);
 	PORTE &= ~(1 << ADV_CONVERSION_START_2); // set to 0
+	wdt_reset();
 }
 
 
@@ -99,6 +114,7 @@ void spi_init_dac()
 	(1<<CPHA)); // Clock phase    // 1 for DAC | 0 for ADC
 	
 	SPSR0 = (0<<SPI2X);  // Double Clock Rate
+	wdt_reset();
 }
 
 
@@ -117,7 +133,7 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 	// Strobe the Load Data pin
 	PORTC &= ~(1<<LD_DAC_1); // Stop data in.
 	PORTC |= (1<<LD_DAC_1);  // set to 1
-	_delay_ms(1);
+	wdt_reset();
 }
 
 /*! \fn void spiTransmitDAC_1 
@@ -142,7 +158,7 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 	// Strobe the Load Data pin
 	PORTC &= ~(1<<LD_DAC_2); // Stop data in.
 	PORTC |= (1<<LD_DAC_2);  // set to 1
-	_delay_ms(1);
+	wdt_reset();
 }
 
 
@@ -164,6 +180,7 @@ void TWIStart(void)
 {
 	TWCR0 = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
 	while ((TWCR0 & (1<<TWINT)) == 0);
+	wdt_reset();
 }
 //send stop signal
 void TWIStop(void)
@@ -176,12 +193,14 @@ void TWIWrite(uint8_t u8data)
 	TWDR0 = u8data;
 	TWCR0 = (1<<TWINT)|(1<<TWEN);
 	while ((TWCR0 & (1<<TWINT)) == 0);
+	wdt_reset();
 }
 
 uint8_t TWIReadACK(void)
 {
 	TWCR0 = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);
 	while ((TWCR0 & (1<<TWINT)) == 0);
+	wdt_reset();
 	return TWDR0;
 }
 //read byte with NACK
@@ -189,6 +208,7 @@ uint8_t TWIReadNACK(void)
 {
 	TWCR0 = (1<<TWINT)|(1<<TWEN);
 	while ((TWCR0 & (1<<TWINT)) == 0);
+	wdt_reset();
 	return TWDR0;
 }
 uint8_t TWIGetStatus(void)
@@ -224,7 +244,7 @@ uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout)
 			{return Error;}
 		TWIStop();
 	}
-	
+	wdt_reset();
 	return Success;
 }
 
@@ -236,6 +256,7 @@ void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout)
 		dataout[1] = 0xFF;
 		TWCR0 = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN); // send stop condition
 	}
+	wdt_reset();
 };
 #pragma endregion
 

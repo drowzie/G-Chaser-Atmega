@@ -70,6 +70,7 @@ enum State {Error, Success};
 
 //SPI functions
 void spi_init_dac();
+void watchdog_enable();
 void spi_init_adc();
 
 //ADC functions - LTC1859
