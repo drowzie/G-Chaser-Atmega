@@ -3,9 +3,8 @@
  */
 
 /*!
- *\section intro_sec Introduction
  *\author Christoffer Boothby and James Alexander Cowie
- *\version 0.3.1
+ *\version 0.3.2
  *\date 2018
  *\copyright GNU Public License.
  */
