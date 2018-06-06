@@ -113,8 +113,8 @@ void Port_Init()
 	PORTE = (1<<ADC_READ_1)|(0<<ADV_CONVERSION_START_1);
 	// DAC STARTUP PIN CONFIGURATION
 	PORTC |= (1<<LD_DAC_1)|(1<<CS_DAC_1);
-	PORTB = (1<<LD_DAC_2)|(1<<CS_DAC_2);
-	wdt_reset();
+	PORTB |= (1<<LD_DAC_2)|(1<<CS_DAC_2);
+	//wdt_reset();
 }
 
 /*! \fn void Port_Init()
@@ -133,7 +133,7 @@ void USART_Init()
 	UCSR0B = (1<<TXEN0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
-	wdt_reset();
+//	wdt_reset();
 }
 
 /*! \fn void USART_INIT()
@@ -212,7 +212,7 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			spiTransmitADC_2(tempVal,LTC1859_CH0);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
-			x++;
+			x = 0;
 			break;
 		case 8:
 			twiDataHandler(VDIG,TWIVOLT, tempVal);
@@ -287,7 +287,7 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 			i++;
 			break;
 		case 3:
-			spiTransmitADC_1(tempAdc,LTC1859_CH2);
+			spiTransmitADC_2(tempAdc,LTC1859_CH2);
 			circular_buf_put(cbuf,pData,tempAdc[0]);
 			circular_buf_put(cbuf,pData,tempAdc[1]);
 			i++;
@@ -317,8 +317,8 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 		case 8: // CRC
 			circular_buf_put(cbuf,pData,(pData->crc16>>8));
 			circular_buf_put(cbuf,pData,(uint8_t)pData->crc16);
-			i = 0;
 			pData->crc16 = 0xFFFF; // reset when done
+			i = 0;
 			break;
 	}
 	pData->mainComm_Counter = i;
@@ -333,7 +333,7 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 
 int main(void)
 {
-	watchdog_enable(); // enable watchdog timer System reset
+	// watchdog_enable(); // enable watchdog timer System reset
 	// Struct defines
 	cbuf.buffer = array;
 	cbuf.size = UART_BUFFER_SIZE;
@@ -343,7 +343,7 @@ int main(void)
 	pData.maxMainComms = 8;
 	pData.crc16 = 0xFFFF;
 	
-	USART_Init();
+	//USART_Init();
 	Port_Init();
 	// For testing one I2C channel
 #pragma region i2cTEST
@@ -358,10 +358,11 @@ int main(void)
 		//_delay_ms(1);
 	//}
 #pragma endregion
-
+	while(1) 
+	{
 	// Grid voltages
 	spi_init_dac();
-	// PCB1					   // (Grid#_bias_pcb#)
+	//// PCB1					   // (Grid#_bias_pcb#)
 	spiTransmitDAC_1((DAC_B<<4 | G1_BIAS_1>>8), (uint8_t)G1_BIAS_1);
 	spiTransmitDAC_1((DAC_C<<4 | G2_BIAS_1>>8), (uint8_t)G2_BIAS_1);
 	spiTransmitDAC_1((DAC_D<<4 | G3_BIAS_1>>8), (uint8_t)G3_BIAS_1);
@@ -369,7 +370,9 @@ int main(void)
 	spiTransmitDAC_2((DAC_B<<4 | G1_BIAS_2>>8), (uint8_t)G1_BIAS_2);
 	spiTransmitDAC_2((DAC_C<<4 | G2_BIAS_2>>8), (uint8_t)G2_BIAS_2);
 	spiTransmitDAC_2((DAC_D<<4 | G3_BIAS_2>>8), (uint8_t)G3_BIAS_2);
-
+	_delay_ms(1);
+	}
+	
 	spi_init_adc();
 	i2c_init();
 	// For testing one ADC channel
