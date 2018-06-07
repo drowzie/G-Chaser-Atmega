@@ -18,23 +18,23 @@
 #define ADC_READ_1						DDRE3 
 #define ADC_1_BUSY						DDRC0
 	// PCB 2
-#define ADV_CONVERSION_START_2			DDRB6
-#define ADC_READ_2						DDD7
+#define ADV_CONVERSION_START_2			DDRD6
+#define ADC_READ_2						DDRD7
 #define ADC_2_BUSY						DDRB0
 
 // DAC PORTS:
 	//PCB 1
-#define CS_DAC_1						DDRC1				
-#define LD_DAC_1						DDRC2
+#define CS_DAC_2						DDRC1				
+#define LD_DAC_2						DDRC2
 	//PCB 2
-#define CS_DAC_2						DDRB1
-#define LD_DAC_2						DDRB2 
+#define CS_DAC_1						DDRB1
+#define LD_DAC_1						DDRB2 
 
 
 // SPI Defines for LTC1859
 // Single-Ended Channel Address 
 #define LTC1859_CH0						0b10000100
-#define LTC1859_CH1						0b11010100
+#define LTC1859_CH1						0b11000100
 #define LTC1859_CH2						0b10010100
 #define LTC1859_CH3						0b11010100
 #define LTC1859_CH4						0b10100100

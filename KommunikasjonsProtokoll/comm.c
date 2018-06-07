@@ -35,7 +35,7 @@ void watchdog_enable()
 void spi_init_adc()
 {	
 	// Output
-	DDR_SPI = ((1<<DD_MOSI)|(1<<DD_SCK)|(0<<DD_MISO));
+	DDR_SPI |= ((1<<DD_MOSI)|(1<<DD_SCK)|(0<<DD_MISO));
 	
 	SPCR0 = ((1<<SPE)|	// ENABLE
 			(0<<SPIE)|	// no interrupt
@@ -50,7 +50,7 @@ void spi_init_adc()
 
 
 
-void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
+void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 {
 	// while((PORTC & (0<<ADC_1_BUSY))); // When busy is high
 	
@@ -79,11 +79,11 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 */
 
 
-void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
+void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 {
 	// while((PORTC & (0<<ADC_2_BUSY))); // When busy is high
 	
-	PORTE &= ~(1<<ADC_READ_2); // low
+	PORTD &= ~(1<<ADC_READ_2); // low
 	ATOMIC_BLOCK(ATOMIC_FORCEON) {
 		SPDR0 = datain; // Transmit data
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
@@ -91,12 +91,12 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 		SPDR0 = 0x00; // transmit dummy byte
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
 		dataout[1] = SPDR0;	 // Get MSB
-		PORTE |= (1<<ADC_READ_2); // high
+		PORTD |= (1<<ADC_READ_2); // high
 	}
 	// Start conversion on off
-	PORTE |= (1 << ADV_CONVERSION_START_2); // set convst 1
+	PORTD |= (1 << ADV_CONVERSION_START_2); // set convst 1
 	_delay_us(0.005);
-	PORTE &= ~(1 << ADV_CONVERSION_START_2); // set to 0
+	PORTD &= ~(1 << ADV_CONVERSION_START_2); // set to 0
 	//
 }
 
@@ -104,7 +104,7 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 void spi_init_dac()
 {
 	// Output
-	DDR_SPI = ((1<<DD_MOSI)|(1<<DD_SCK)|(0<<DD_MISO));
+	DDR_SPI |= ((1<<DD_MOSI)|(1<<DD_SCK)|(0<<DD_MISO));
 	
 	SPCR0 = ((1<<SPE)|	// ENABLE
 	(0<<SPIE)|	// no interrupt
@@ -120,8 +120,8 @@ void spi_init_dac()
 
 void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData) 
 {
-	PORTC &= ~(1<<CS_DAC_1); // Chip Select go low
-	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
+	PORTB &= ~(1<<CS_DAC_1); // Chip Select go low
+	_delay_us(0.10); // data sheet says 15ns for TSS, 10ns + clock time
 	// Send data
 	SPDR0 = dacAdress;
 	while(!(SPSR0 & (1<<SPIF)));
@@ -129,12 +129,11 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 	while(!(SPSR0 & (1<<SPIF)));
 	// End
 	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
-	PORTC |= (1<<CS_DAC_1); // Chip Select go high
+	PORTB |= (1<<CS_DAC_1); // Chip Select go high
 	// Strobe the Load Data pin
-	PORTC &= ~(1<<LD_DAC_1); // Stop data in.
-	PORTC |= (1<<LD_DAC_1);  // set to 1
+	PORTB &= ~(1<<LD_DAC_1); // Stop data in.
+	PORTB |= (1<<LD_DAC_1);  // set to 1
 	////
-	_delay_ms(1);
 }
 
 /*! \fn void spiTransmitDAC_1 
@@ -146,7 +145,7 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 
 void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 {
-	PORTB &= ~(1<<CS_DAC_2); // Chip Select go low
+	PORTC &= ~(1<<CS_DAC_2); // Chip Select go low
 	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
 	// Send data
 	SPDR0 = dacAdress;
@@ -155,12 +154,11 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 	while(!(SPSR0 & (1<<SPIF)));
 	// End
 	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
-	PORTB |= (1<<CS_DAC_2); // Chip Select go high
+	PORTC |= (1<<CS_DAC_2); // Chip Select go high
 	// Strobe the Load Data pin
-	PORTB &= ~(1<<LD_DAC_2); // Stop data in.
-	PORTB |= (1<<LD_DAC_2);  // set to 1
+	PORTC &= ~(1<<LD_DAC_2); // Stop data in.
+	PORTC |= (1<<LD_DAC_2);  // set to 1
 	////
-	_delay_ms(1);
 }
 
 
@@ -252,6 +250,7 @@ uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout)
 
 void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout)
 {
+	_delay_us(0.2); 
 	if(PWMReadByte(address,reg, dataout) == Error) // IF ERROR
 	{		
 		dataout[0] = 0xFF;						
