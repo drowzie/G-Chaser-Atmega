@@ -42,7 +42,7 @@
 #define LTC1859_CH6						0b10110100
 #define LTC1859_CH7						0b11110100
 
-// Voltage settings for DAC8420
+// Forspenninger på gridsa
 #define GT1 						(uint16_t)0xFFF 
 #define MP							(uint16_t)0x666
 #define GB1							(uint16_t)0x000

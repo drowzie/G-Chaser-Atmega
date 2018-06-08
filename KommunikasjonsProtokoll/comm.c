@@ -14,6 +14,10 @@
 #include <avr/wdt.h>
 
 
+typedef struct {
+	uint8_t * buffer;
+} adcValue;
+
 
 // Watchdog timer
 
@@ -53,14 +57,15 @@ void spi_init_adc()
 void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 {
 	//while((PORTC & (1<<ADC_1_BUSY))); // When busy is high
-	
-	PORTE &= ~(1<<ADC_READ_1); // low
-	ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	ATOMIC_BLOCK(ATOMIC_FORCEON) {	
+		PORTE &= ~(1<<ADC_READ_1); // low
 		SPDR0 = datain; // Transmit data
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+		wdt_reset();
 		dataout[0] = SPDR0;	 // Get MSB
 		SPDR0 = 0x00; // transmit dummy byte
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+		wdt_reset();
 		dataout[1] = SPDR0;	 // Get MSB
 		PORTE |= (1<<ADC_READ_1); // high
 	}
@@ -82,13 +87,15 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 {
 	//while((PORTB & (1<<ADC_2_BUSY))); // When busy is high
-	PORTD &= ~(1<<ADC_READ_2); // low
 	ATOMIC_BLOCK(ATOMIC_FORCEON) {
+		PORTD &= ~(1<<ADC_READ_2); // low
 		SPDR0 = datain; // Transmit data
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+		wdt_reset();
 		dataout[0] = SPDR0;	 // Get MSB
 		SPDR0 = 0x00; // transmit dummy byte
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
+		wdt_reset();
 		dataout[1] = SPDR0;	 // Get MSB
 		PORTD |= (1<<ADC_READ_2); // high
 	}
@@ -124,8 +131,10 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 	// Send data
 	SPDR0 = dacAdress;
 	while(!(SPSR0 & (1<<SPIF)));
+	wdt_reset();
 	SPDR0 = dacData;
 	while(!(SPSR0 & (1<<SPIF)));
+	wdt_reset();
 	// End
 	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
 	PORTB |= (1<<CS_DAC_1); // Chip Select go high
@@ -149,8 +158,10 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 	// Send data
 	SPDR0 = dacAdress;
 	while(!(SPSR0 & (1<<SPIF)));
+	wdt_reset();
 	SPDR0 = dacData;
 	while(!(SPSR0 & (1<<SPIF)));
+	wdt_reset();
 	// End
 	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
 	PORTC |= (1<<CS_DAC_2); // Chip Select go high
@@ -165,12 +176,12 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 
 // A detailed guide about using I2C and these functions is seen in datasheet for ATMEGA328PB
 // I2C Defines
-#define TWI_FREQ 1500
-#define Prescaler 64
+#define TWI_FREQ 10000
+#define Prescaler 16
 
 void i2c_init(void)
 {
-	TWSR0 = (1<<TWPS1)|(1<<TWPS0);
+	TWSR0 = (1<<TWPS1)|(0<<TWPS0);
 	TWBR0 = ((((F_CPU / TWI_FREQ) / Prescaler) - 16 ) / 2);
 	TWCR0 = (1<<TWEN);
 	PORTC |= (1<<PORTC5)|(1<<PORTC4);
@@ -180,7 +191,7 @@ void TWIStart(void)
 {
 	TWCR0 = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
 	while ((TWCR0 & (1<<TWINT)) == 0);
-	//
+	//wdt_reset();
 }
 //send stop signal
 void TWIStop(void)
@@ -193,13 +204,14 @@ void TWIWrite(uint8_t u8data)
 	TWDR0 = u8data;
 	TWCR0 = (1<<TWINT)|(1<<TWEN);
 	while ((TWCR0 & (1<<TWINT)) == 0);
-	//
+	//wdt_reset();
 }
 
 uint8_t TWIReadACK(void)
 {
 	TWCR0 = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);
 	while ((TWCR0 & (1<<TWINT)) == 0);
+	//wdt_reset();
 	return TWDR0;
 }
 //read byte with NACK
@@ -207,7 +219,7 @@ uint8_t TWIReadNACK(void)
 {
 	TWCR0 = (1<<TWINT)|(1<<TWEN);
 	while ((TWCR0 & (1<<TWINT)) == 0);
-	//
+	//wdt_reset();
 	return TWDR0;
 }
 uint8_t TWIGetStatus(void)
@@ -219,7 +231,6 @@ uint8_t TWIGetStatus(void)
 }
 uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout) 
 {
-	//ATOMIC_BLOCK(ATOMIC_FORCEON){ // Making sure the interrupt doesn't break reading
 		TWIStart();
 		if (TWIGetStatus() != TW_START) // check for start
 			{return Error;}
@@ -242,14 +253,12 @@ uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout)
 		if (TWIGetStatus() != TW_MR_DATA_NACK)  // Master recieve nack
 			{return Error;}
 		TWIStop();
-	//}
-	//
 	return Success;
 }
 
 void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout)
 {
-	_delay_us(30); 
+	//_delay_us(30); 
 	if(PWMReadByte(address,reg, dataout) == Error) // IF ERROR
 	{		
 		dataout[0] = 0x80;						
@@ -258,6 +267,46 @@ void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout)
 	}
 	//
 };
+
+void pickChannel(uint8_t channel, uint8_t * datain, adcValue * valueBuff) // if channel and store value
+{
+	switch (channel)
+	{
+		case 0b10001000: // CH0
+			valueBuff->buffer[0] = datain[0];
+			valueBuff->buffer[1] = datain[1];
+			break;
+		case 0b11001000: // CH1
+			valueBuff->buffer[2] = datain[0];
+			valueBuff->buffer[3] = datain[1];
+			break;
+		case 0b10010100: // CH2
+			valueBuff->buffer[4] = datain[0];
+			valueBuff->buffer[5] = datain[1];
+			break;
+		case 0b11010100: // CH3 
+			valueBuff->buffer[6] = datain[0];
+			valueBuff->buffer[7] = datain[1];
+			break; 
+		case 0b10100100: // CH4
+			valueBuff->buffer[8] = datain[0];
+			valueBuff->buffer[9] = datain[1];
+			break;	
+		case 0b11100100: // CH5
+			valueBuff->buffer[10] = datain[0];
+			valueBuff->buffer[11] = datain[1];
+			break;
+		case 0b10110100: // CH6
+			valueBuff->buffer[12] = datain[0];
+			valueBuff->buffer[13] = datain[1];
+			break;
+		case 0b11110100: // CH7
+			valueBuff->buffer[14] = datain[0];
+			valueBuff->buffer[15] = datain[1];
+			break;
+	}
+}
+
 #pragma endregion
 
 #pragma endregion

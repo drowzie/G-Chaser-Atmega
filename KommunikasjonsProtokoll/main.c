@@ -4,7 +4,7 @@
 
 /*!
  *\author Christoffer Boothby and James Alexander Cowie
- *\version 0.3.2
+ *\version 0.4.0
  *\date 2018
  *\copyright GNU Public License.
  */
@@ -40,7 +40,7 @@
 
 
 /* Size of Buffer*/
-#define UART_BUFFER_SIZE 128
+#define UART_BUFFER_SIZE 1512
 #define UART_TX0_MAXBUFFER (UART_BUFFER_SIZE-1)
 
 
@@ -49,9 +49,9 @@
 ////////////////////////////////////////////////////////
 typedef struct {
 	uint8_t * buffer;
-	uint8_t  volatile head;
-	uint8_t  volatile tail;
-	uint8_t  size;
+	uint16_t  volatile head;
+	uint16_t  volatile tail;
+	uint16_t  size;
 } circular_buf_t;
 
 typedef struct {
@@ -73,10 +73,18 @@ uint8_t array[UART_BUFFER_SIZE];
 void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 {
 	uint16_t tmphead;
+	uint16_t txtail_tmp;
+	
 	
 	tmphead = (cbuf->head + 1) & UART_TX0_MAXBUFFER; 
 	
-	while (tmphead == cbuf->tail); /* wait for free space in buffer */
+	do {
+		ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			txtail_tmp = cbuf->tail;
+		}
+		
+	} while (tmphead == txtail_tmp); /* wait for free space in buffer */
+	//wdt_reset();
 	cbuf->buffer[tmphead] = data;
 	cbuf->head = tmphead;
 	
@@ -159,8 +167,9 @@ ISR(USART0_UDRE_vect)
 		// When empty, disable the intterupt
 		UCSR0B &= ~(1<<UDRIE0);
 	}
-	
+	//wdt_reset();
 }
+
 
 void subCommFormat(circular_buf_t * cbuf, packet_data * pData) 
 {
@@ -211,6 +220,7 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			break;
 		case 6:
 			spiTransmitADC_1(tempVal,LTC1859_CH1);
+			spiTransmitADC_1(tempVal,LTC1859_CH1);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
 			x++;
@@ -227,8 +237,9 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			spiTransmitADC_2(tempVal,LTC1859_CH1); 
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
-			x++;
+			x = 15;		// change to x++ if I2C enabled, else x=15 to skip i2c package.
 			break;
+			// SKIP I2C ^
 		case 9:
 			twiDataHandler(VDIG,TWIVOLT, tempVal);
 			circular_buf_put(cbuf,pData,tempVal[0]);
@@ -239,7 +250,7 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			twiDataHandler(VDIG,TWICURRENT, tempVal);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
-			x++;
+			x = 15;	
 			break;
 		case 11:
 			twiDataHandler(VAPLUS,TWIVOLT, tempVal);
@@ -260,13 +271,28 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			x++;
 			break;
 		case 14:
-			twiDataHandler(VAMINUS,TWICURRENT, tempVal);	
+			twiDataHandler(VAMINUS,TWICURRENT, tempVal);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 15:
+			spiTransmitADC_2(tempVal,LTC1859_CH4);
+			spiTransmitADC_2(tempVal,LTC1859_CH4);
+			circular_buf_put(cbuf,pData,tempVal[0]);
+			circular_buf_put(cbuf,pData,tempVal[1]);
+			x++;
+			break;
+		case 16:
+			spiTransmitADC_2(tempVal,LTC1859_CH5);
+			spiTransmitADC_2(tempVal,LTC1859_CH5);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
 			x = 0;
-			break;		
+		break;
 	}
 	pData->subComm_Counter = x;
+
 }
 /*! \fn void subCommFormat() 
  * \brief subcomm packet, will repeat itself
@@ -349,7 +375,7 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 
 int main(void)
 {
-	// watchdog_enable(); // enable watchdog timer System reset
+	 watchdog_enable(); // enable watchdog timer System reset
 	// Struct defines
 	 cbuf.buffer = array;
 	 cbuf.size = UART_BUFFER_SIZE;
@@ -389,7 +415,7 @@ int main(void)
 	spi_init_adc();
 	i2c_init();
 	//// For testing one ADC channel
-//#pragma region TestADC
+#pragma region TestADC
 	////uint8_t testData[2];
 	//while(1) 
 	//{
@@ -406,5 +432,6 @@ int main(void)
 	while(1)
 	{
 		packetFormat(&cbuf,&pData);
+		wdt_reset();
 	}
 }
