@@ -40,7 +40,7 @@ void spi_init_adc()
 	SPCR0 = ((1<<SPE)|	// ENABLE
 			(0<<SPIE)|	// no interrupt
 			(1<<MSTR)|	//Master/slave sel
-			(0<<SPR1)|(1<<SPR0)| // Spi clock rate -- fosc/16
+			(0<<SPR1)|(0<<SPR0)| // Spi clock rate -- fosc/16
 			(0<<CPOL)|	// Clock polarity // 1 for DAC | 0 for ADC
 			(0<<CPHA)); // Clock phase    // 1 for DAC | 0 for ADC
 
@@ -52,7 +52,7 @@ void spi_init_adc()
 
 void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 {
-	// while((PORTC & (0<<ADC_1_BUSY))); // When busy is high
+	//while((PORTC & (1<<ADC_1_BUSY))); // When busy is high
 	
 	PORTE &= ~(1<<ADC_READ_1); // low
 	ATOMIC_BLOCK(ATOMIC_FORCEON) {
@@ -68,7 +68,7 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
 	_delay_us(0.005);
 	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
-//	//
+	_delay_us(5);
 }
 
 /*! \fn void spiTransmitADC_1 
@@ -81,8 +81,7 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 
 void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 {
-	// while((PORTC & (0<<ADC_2_BUSY))); // When busy is high
-	
+	//while((PORTB & (1<<ADC_2_BUSY))); // When busy is high
 	PORTD &= ~(1<<ADC_READ_2); // low
 	ATOMIC_BLOCK(ATOMIC_FORCEON) {
 		SPDR0 = datain; // Transmit data
@@ -97,7 +96,7 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	PORTD |= (1 << ADV_CONVERSION_START_2); // set convst 1
 	_delay_us(0.005);
 	PORTD &= ~(1 << ADV_CONVERSION_START_2); // set to 0
-	//
+	_delay_us(5);
 }
 
 
@@ -173,6 +172,7 @@ void i2c_init(void)
 {
 	TWSR0 = (1<<TWPS1)|(1<<TWPS0);
 	TWBR0 = ((((F_CPU / TWI_FREQ) / Prescaler) - 16 ) / 2);
+	TWCR0 = (1<<TWEN);
 	PORTC |= (1<<PORTC5)|(1<<PORTC4);
 }
 
@@ -200,7 +200,6 @@ uint8_t TWIReadACK(void)
 {
 	TWCR0 = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);
 	while ((TWCR0 & (1<<TWINT)) == 0);
-	//
 	return TWDR0;
 }
 //read byte with NACK
@@ -220,7 +219,7 @@ uint8_t TWIGetStatus(void)
 }
 uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout) 
 {
-	ATOMIC_BLOCK(ATOMIC_FORCEON){ // Making sure the interrupt doesn't break reading
+	//ATOMIC_BLOCK(ATOMIC_FORCEON){ // Making sure the interrupt doesn't break reading
 		TWIStart();
 		if (TWIGetStatus() != TW_START) // check for start
 			{return Error;}
@@ -243,18 +242,18 @@ uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout)
 		if (TWIGetStatus() != TW_MR_DATA_NACK)  // Master recieve nack
 			{return Error;}
 		TWIStop();
-	}
+	//}
 	//
 	return Success;
 }
 
 void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout)
 {
-	_delay_us(0.2); 
+	_delay_us(30); 
 	if(PWMReadByte(address,reg, dataout) == Error) // IF ERROR
 	{		
-		dataout[0] = 0xFF;						
-		dataout[1] = 0xFF;
+		dataout[0] = 0x80;						
+		dataout[1] = 0x80;
 		TWCR0 = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN); // send stop condition
 	}
 	//

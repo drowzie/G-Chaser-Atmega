@@ -83,9 +83,9 @@ void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 	UCSR0B |= (1<<UDRIE0); // enable interrupt when buffer is increasing again.
 	
 	// Update CRC only when above ID(#2 and below CRC)
-	if(pData->mainComm_Counter > 1 && pData->mainComm_Counter < pData->maxMainComms)
+	if(pData->mainComm_Counter > 0 && pData->mainComm_Counter < pData->maxMainComms)
 	{
-		pData->crc16 = _crc_ccitt_update(pData->crc16, data);
+		pData->crc16 = _crc_xmodem_update(pData->crc16, data);
 	}
 }
 
@@ -153,7 +153,7 @@ ISR(USART0_UDRE_vect)
 		tmptail = (cbuf.tail + 1) & UART_TX0_MAXBUFFER; // Reset when reaching maximum buffer size
 		cbuf.tail = tmptail;
 		UDR0 = cbuf.buffer[tmptail];
-		_delay_ms(1);
+		//_delay_ms(1);
 	}	
 	else {
 		// When empty, disable the intterupt
@@ -169,11 +169,13 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 	switch(x){
 		case 0:
 			spiTransmitADC_1(tempVal,LTC1859_CH3);
+			spiTransmitADC_1(tempVal,LTC1859_CH3);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
 			x++;
 			break;
 		case 1:
+			spiTransmitADC_2(tempVal,LTC1859_CH3);
 			spiTransmitADC_2(tempVal,LTC1859_CH3);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
@@ -181,11 +183,13 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			break;
 		case 2:
 			spiTransmitADC_1(tempVal,LTC1859_CH5);
+			spiTransmitADC_1(tempVal,LTC1859_CH5);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
 			x++;
 			break;
 		case 3:
+			spiTransmitADC_2(tempVal,LTC1859_CH7);
 			spiTransmitADC_2(tempVal,LTC1859_CH7);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
@@ -193,11 +197,13 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			break;
 		case 4:
 			spiTransmitADC_1(tempVal,LTC1859_CH7);
+			spiTransmitADC_1(tempVal,LTC1859_CH7);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
 			x++;
 			break;
 		case 5:
+			spiTransmitADC_1(tempVal,LTC1859_CH0);
 			spiTransmitADC_1(tempVal,LTC1859_CH0);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
@@ -211,15 +217,17 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			break;
 		case 7:
 			spiTransmitADC_2(tempVal,LTC1859_CH0);
+			spiTransmitADC_2(tempVal,LTC1859_CH0);
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
 			x++;
 			break;
 		case 8:
 			spiTransmitADC_2(tempVal,LTC1859_CH1); 
+			spiTransmitADC_2(tempVal,LTC1859_CH1); 
 			circular_buf_put(cbuf,pData,tempVal[0]);
 			circular_buf_put(cbuf,pData,tempVal[1]);
-			x = 0;
+			x++;
 			break;
 		case 9:
 			twiDataHandler(VDIG,TWIVOLT, tempVal);
@@ -317,9 +325,9 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 			i++;
 			break;
 		case 7: // SUBCOMM
-			//subCommFormat(cbuf,pData);
-			circular_buf_put(cbuf,pData,0xEE);
-			circular_buf_put(cbuf,pData,0x99);
+			subCommFormat(cbuf,pData);
+			//circular_buf_put(cbuf,pData,0xEE);
+			//circular_buf_put(cbuf,pData,0x99);
 			i++;
 			break;
 		case 8: // CRC
@@ -350,50 +358,50 @@ int main(void)
 	 pData.mainComm_Counter = 0;
 	 pData.maxMainComms = 8;
 	 pData.crc16 = 0xFFFF;
-	 
 	USART_Init();
 	Port_Init();
-	int volatile test = 0;
 	// For testing one I2C channel
 #pragma region i2cTEST
-	// 	i2c_init();
-	//uint8_t  twiTemp[2];
-	//while(1)
-	//{ twiDataHandler(VDIG,voltage, twiTemp);
-		//UDR0 = twiTemp[0];
-		//while ( !( UCSR0A & (1<<UDRE0)) );
-		//UDR0 = twiTemp[1];
-		//while ( !( UCSR0A & (1<<UDRE0)) );
-		//_delay_ms(1);
-	//}
+	 	//i2c_init();
+	 	//uint8_t twiTemp[2];
+	 	//while(1)
+	 	//{
+			//twiDataHandler(0xD2, TWICURRENT, twiTemp);
+		 	//UDR0 = twiTemp[0];
+		 	//while ( !( UCSR0A & (1<<UDRE0)) );
+		 	//UDR0 = twiTemp[1];
+		 	//while ( !( UCSR0A & (1<<UDRE0)) );
+		 	//_delay_ms(10);
+	 	//}
+		 
 #pragma endregion
 	spi_init_dac();
 	// Grid voltages
 	//// PCB1					   // (Grid#_bias_pcb#)
-	spiTransmitDAC_1((DAC_B<<4 | G1_BIAS_1>>8), (uint8_t)G1_BIAS_1);
-	spiTransmitDAC_1((DAC_C<<4 | G2_BIAS_1>>8), (uint8_t)G2_BIAS_1);
-	spiTransmitDAC_1((DAC_D<<4 | G3_BIAS_1>>8), (uint8_t)G3_BIAS_1);
+	spiTransmitDAC_1((DAC_B<<4 | GT1>>8), (uint8_t)GT1);
+	spiTransmitDAC_1((DAC_D<<4 | MP>>8), (uint8_t)MP);
+	spiTransmitDAC_1((DAC_C<<4 | GB1>>8), (uint8_t)GB1);
 	 ////PCB2
-	spiTransmitDAC_2((DAC_B<<4 | G1_BIAS_2>>8), (uint8_t)G2_BIAS_2);
-	spiTransmitDAC_2((DAC_C<<4 | G2_BIAS_2>>8), (uint8_t)G2_BIAS_2);
-	spiTransmitDAC_2((DAC_D<<4 | G3_BIAS_2>>8), (uint8_t)G3_BIAS_2);
+	spiTransmitDAC_2((DAC_B<<4 | GT2>>8), (uint8_t)GT2);
+	spiTransmitDAC_2((DAC_D<<4 | SP>>8), (uint8_t)SP);
+	spiTransmitDAC_2((DAC_C<<4 | GB2>>8), (uint8_t)GB2);
 	
 	spi_init_adc();
 	i2c_init();
 	//// For testing one ADC channel
 //#pragma region TestADC
 	////uint8_t testData[2];
-	////while(1) 
-	////{
-		////spiTransmitADC_2(testData,LTC1859_CH1);
-		////UDR0 = 0x9C;
-		////while ( !( UCSR0A & (1<<UDRE0)) ){}
-		////UDR0 = testData[0];
-		////while ( !( UCSR0A & (1<<UDRE0)) ){}
-		////UDR0 = testData[1];
-		////while ( !( UCSR0A & (1<<UDRE0)) ){}
-	////}
-//#pragma endregion	
+	//while(1) 
+	//{
+		//spiTransmitADC_2(testData,LTC1859_CH1);
+		//UDR0 = 0x9C;
+		//while ( !( UCSR0A & (1<<UDRE0)) ){}
+		//UDR0 = testData[0];
+		//while ( !( UCSR0A & (1<<UDRE0)) ){}
+		//UDR0 = testData[1];
+		//while ( !( UCSR0A & (1<<UDRE0)) ){}
+	//}
+#pragma endregion	
 	sei(); // enable global interrupt - run after INITS
 	while(1)
 	{

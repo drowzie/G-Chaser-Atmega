@@ -33,8 +33,8 @@
 
 // SPI Defines for LTC1859
 // Single-Ended Channel Address 
-#define LTC1859_CH0						0b10000100
-#define LTC1859_CH1						0b11000100
+#define LTC1859_CH0						0b10001000
+#define LTC1859_CH1						0b11001000
 #define LTC1859_CH2						0b10010100
 #define LTC1859_CH3						0b11010100
 #define LTC1859_CH4						0b10100100
@@ -43,13 +43,13 @@
 #define LTC1859_CH7						0b11110100
 
 // Voltage settings for DAC8420
-#define G1_BIAS_1						(uint16_t)0xFFF
-#define G2_BIAS_1						(uint16_t)0xFFF
-#define G3_BIAS_1						(uint16_t)0xFFF
+#define GT1 						(uint16_t)0xFFF 
+#define MP							(uint16_t)0x666
+#define GB1							(uint16_t)0x000
 
-#define G1_BIAS_2						(uint16_t)0xFFF
-#define G2_BIAS_2						(uint16_t)0xFFF
-#define G3_BIAS_2						(uint16_t)0xFFF
+#define GT2							(uint16_t)0x000
+#define SP							(uint16_t)0x800
+#define GB2							(uint16_t)0xFFF
 
 // DAC8420 ADRESSES for channels
 #define DAC_B							0x4
