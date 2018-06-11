@@ -14,10 +14,6 @@
 #include <avr/wdt.h>
 
 
-typedef struct {
-	uint8_t * buffer;
-} adcValue;
-
 
 // Watchdog timer
 
@@ -53,6 +49,7 @@ void spi_init_adc()
 }
 
 
+// communicate with adc, get voltages, put them in to the storage of their last communcation, update the new one.
 
 void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 {
@@ -68,6 +65,10 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 		wdt_reset();
 		dataout[1] = SPDR0;	 // Get MSB
 		PORTE |= (1<<ADC_READ_1); // high
+		
+		// Dataout is from last buffer, store it into the buffer of pdata old.
+		
+		// Update with datain(ID)
 	}
 	// Start conversion on off
 	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
@@ -268,45 +269,10 @@ void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout)
 	//
 };
 
-void pickChannel(uint8_t channel, uint8_t * datain, adcValue * valueBuff) // if channel and store value
-{
-	switch (channel)
-	{
-		case 0b10001000: // CH0
-			valueBuff->buffer[0] = datain[0];
-			valueBuff->buffer[1] = datain[1];
-			break;
-		case 0b11001000: // CH1
-			valueBuff->buffer[2] = datain[0];
-			valueBuff->buffer[3] = datain[1];
-			break;
-		case 0b10010100: // CH2
-			valueBuff->buffer[4] = datain[0];
-			valueBuff->buffer[5] = datain[1];
-			break;
-		case 0b11010100: // CH3 
-			valueBuff->buffer[6] = datain[0];
-			valueBuff->buffer[7] = datain[1];
-			break; 
-		case 0b10100100: // CH4
-			valueBuff->buffer[8] = datain[0];
-			valueBuff->buffer[9] = datain[1];
-			break;	
-		case 0b11100100: // CH5
-			valueBuff->buffer[10] = datain[0];
-			valueBuff->buffer[11] = datain[1];
-			break;
-		case 0b10110100: // CH6
-			valueBuff->buffer[12] = datain[0];
-			valueBuff->buffer[13] = datain[1];
-			break;
-		case 0b11110100: // CH7
-			valueBuff->buffer[14] = datain[0];
-			valueBuff->buffer[15] = datain[1];
-			break;
-	}
-}
+
 
 #pragma endregion
 
 #pragma endregion
+
+// CH0: 0-1: CH1: 2-3 CH2: 4-5 CH3: 6-7 CH4: 8-9 CH5: 10-11CH6 12-13 CH7 14-15
