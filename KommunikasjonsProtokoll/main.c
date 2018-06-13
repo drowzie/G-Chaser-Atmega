@@ -334,42 +334,42 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			x = 15;		// change to x++ if I2C enabled, else x=15 to skip i2c package.
 			break;
 			// SKIP I2C ^
-		case 9:
-			twiDataHandler(VDIG,TWIVOLT, tempVal);
-			circular_buf_put(cbuf,pData,tempVal[0]);
-			circular_buf_put(cbuf,pData,tempVal[1]);
-			x++;
-			break;
-		case 10:
-			twiDataHandler(VDIG,TWICURRENT, tempVal);
-			circular_buf_put(cbuf,pData,tempVal[0]);
-			circular_buf_put(cbuf,pData,tempVal[1]);
-			x = 15;	
-			break;
-		case 11:
-			twiDataHandler(VAPLUS,TWIVOLT, tempVal);
-			circular_buf_put(cbuf,pData,tempVal[0]);
-			circular_buf_put(cbuf,pData,tempVal[1]);
-			x++;
-			break;
-		case 12:
-			twiDataHandler(VAPLUS,TWICURRENT, tempVal);
-			circular_buf_put(cbuf,pData,tempVal[0]);
-			circular_buf_put(cbuf,pData,tempVal[1]);
-			x++;
-			break;
-		case 13:
-			twiDataHandler(VAMINUS,TWIVOLT, tempVal);
-			circular_buf_put(cbuf,pData,tempVal[0]);
-			circular_buf_put(cbuf,pData,tempVal[1]);
-			x++;
-			break;
-		case 14:
-			twiDataHandler(VAMINUS,TWICURRENT, tempVal);
-			circular_buf_put(cbuf,pData,tempVal[0]);
-			circular_buf_put(cbuf,pData,tempVal[1]);
-			x++;
-			break;
+		//case 9:
+			//twiDataHandler(VDIG,TWIVOLT, tempVal);
+			//circular_buf_put(cbuf,pData,tempVal[0]);
+			//circular_buf_put(cbuf,pData,tempVal[1]);
+			//x++;
+			//break;
+		//case 10:
+			//twiDataHandler(VDIG,TWICURRENT, tempVal);
+			//circular_buf_put(cbuf,pData,tempVal[0]);
+			//circular_buf_put(cbuf,pData,tempVal[1]);
+			//x = 15;	
+			//break;
+		//case 11:
+			//twiDataHandler(VAPLUS,TWIVOLT, tempVal);
+			//circular_buf_put(cbuf,pData,tempVal[0]);
+			//circular_buf_put(cbuf,pData,tempVal[1]);
+			//x++;
+			//break;
+		//case 12:
+			//twiDataHandler(VAPLUS,TWICURRENT, tempVal);
+			//circular_buf_put(cbuf,pData,tempVal[0]);
+			//circular_buf_put(cbuf,pData,tempVal[1]);
+			//x++;
+			//break;
+		//case 13:
+			//twiDataHandler(VAMINUS,TWIVOLT, tempVal);
+			//circular_buf_put(cbuf,pData,tempVal[0]);
+			//circular_buf_put(cbuf,pData,tempVal[1]);
+			//x++;
+			//break;
+		//case 14:
+			//twiDataHandler(VAMINUS,TWICURRENT, tempVal);
+			//circular_buf_put(cbuf,pData,tempVal[0]);
+			//circular_buf_put(cbuf,pData,tempVal[1]);
+			//x++;
+			//break;
 		case 15:
 			spiTransmitADC_2(tempVal,LTC1859_CH4);
 			channelUpdater_2(tempVal,pData);
@@ -385,7 +385,7 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			circular_buf_put(cbuf,pData,pData->channelData_2[10]);
 			circular_buf_put(cbuf,pData,pData->channelData_2[11]);
 			x = 0;
-		break;
+			break;
 	}
 	pData->subComm_Counter = x;
 
