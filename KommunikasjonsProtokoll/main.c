@@ -474,12 +474,10 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
  * \param pData For using subcomm ID
  * \return None.
 */
-uint8_t test = 0;
-uint8_t test_2 = 0;
 
 int main(void)
 {
-	 watchdog_enable(); // enable watchdog timer System reset
+	 //watchdog_enable(); // enable watchdog timer System reset
 	// Struct defines
 	 cbuf.buffer = array;
 	 cbuf.size = UART_BUFFER_SIZE;
@@ -521,7 +519,7 @@ int main(void)
 	spiTransmitDAC_2((DAC_C<<4 | GB2>>8), (uint8_t)GB2);
 	
 	spi_init_adc();
-	i2c_init();
+//	i2c_init();
 	//// For testing one ADC channel
 #pragma region TestADC
 	////uint8_t testData[2];
