@@ -40,9 +40,8 @@
         </dependencies>
       </framework-data>
     </AsfFrameworkConfig>
-    <avrtool>com.atmel.avrdbg.tool.simulator</avrtool>
-    <avrtoolserialnumber>
-    </avrtoolserialnumber>
+    <avrtool>com.atmel.avrdbg.tool.atmelice</avrtool>
+    <avrtoolserialnumber>J41800089134</avrtoolserialnumber>
     <avrdeviceexpectedsignature>0x1E9516</avrdeviceexpectedsignature>
     <com_atmel_avrdbg_tool_simulator>
       <ToolOptions>
@@ -63,7 +62,8 @@
         <InterfaceProperties>
           <IspClock>125000</IspClock>
         </InterfaceProperties>
-        <InterfaceName>ISP</InterfaceName>
+        <InterfaceName>
+        </InterfaceName>
       </ToolOptions>
       <ToolType>com.atmel.avrdbg.tool.atmelice</ToolType>
       <ToolNumber>J41800089134</ToolNumber>
