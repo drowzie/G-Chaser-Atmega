@@ -4,7 +4,7 @@
 
 /*!
  *\author Christoffer Boothby and James Alexander Cowie
- *\version 0.4.2
+ *\version 0.4.3
  *\date 2018
  *\copyright GNU Public License.
  */
@@ -210,8 +210,8 @@ void channelUpdater_1(uint8_t * datain, packet_data * pData) // if channel and s
 		pData->channelData[13] = datain[1];
 		break;
 		case LTC1859_CH7: // CH7
-		pData->channelData[15] = datain[0];
-		pData->channelData[16] = datain[1];
+		pData->channelData[14] = datain[0];
+		pData->channelData[15] = datain[1];
 		break;
 	}
 }
@@ -249,8 +249,8 @@ void channelUpdater_2(uint8_t * datain, packet_data * pData) // if channel and s
 		pData->channelData_2[13] = datain[1];
 		break;
 		case LTC1859_CH7: // CH7
-		pData->channelData_2[15] = datain[0];
-		pData->channelData_2[16] = datain[1];
+		pData->channelData_2[14] = datain[0];
+		pData->channelData_2[15] = datain[1];
 		break;
 	}
 }
@@ -297,16 +297,16 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			spiTransmitADC_1(tempVal, LTC1859_CH7);
 			channelUpdater_1(tempVal, pData);
 			pData->lastChannelAccessed = LTC1859_CH7;
-			circular_buf_put(cbuf,pData,pData->channelData[6]);
-			circular_buf_put(cbuf,pData,pData->channelData[7]);
+			circular_buf_put(cbuf,pData,pData->channelData[14]);
+			circular_buf_put(cbuf,pData,pData->channelData[15]);
 			x++;
 			break;
 		case 5:
 			spiTransmitADC_1(tempVal, LTC1859_CH0);
 			channelUpdater_1(tempVal, pData);
 			pData->lastChannelAccessed = LTC1859_CH0;
-			circular_buf_put(cbuf,pData,pData->channelData[14]);
-			circular_buf_put(cbuf,pData,pData->channelData[15]);
+			circular_buf_put(cbuf,pData,pData->channelData[0]);
+			circular_buf_put(cbuf,pData,pData->channelData[1]);
 			x++;
 			break;
 		case 6:
