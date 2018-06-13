@@ -4,7 +4,7 @@
 
 /*!
  *\author Christoffer Boothby and James Alexander Cowie
- *\version 0.4.1
+ *\version 0.4.2
  *\date 2018
  *\copyright GNU Public License.
  */
