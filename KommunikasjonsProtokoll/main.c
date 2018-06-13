@@ -474,6 +474,8 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
  * \param pData For using subcomm ID
  * \return None.
 */
+uint8_t test = 0;
+uint8_t test_2 = 0;
 
 int main(void)
 {

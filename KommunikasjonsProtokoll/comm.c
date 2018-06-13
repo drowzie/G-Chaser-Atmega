@@ -142,7 +142,7 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 	// Strobe the Load Data pin
 	PORTB &= ~(1<<LD_DAC_1); // Stop data in.
 	PORTB |= (1<<LD_DAC_1);  // set to 1
-	////
+	_delay_us(0.1);
 }
 
 /*! \fn void spiTransmitDAC_1 
@@ -169,7 +169,7 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 	// Strobe the Load Data pin
 	PORTC &= ~(1<<LD_DAC_2); // Stop data in.
 	PORTC |= (1<<LD_DAC_2);  // set to 1
-	////
+	_delay_us(0.1);
 }
 
 
