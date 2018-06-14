@@ -21,7 +21,6 @@ void watchdog_enable()
 {
 	WDTCSR = (1<<WDE)|(0<<WDP3)|(0<<WDP2)|(0<<WDP1)|(0<<WDP0);
 	wdt_enable(WDTO_15MS);
-	//
 }
 
 // SPI defines - Not all ports are correctly set...
@@ -72,7 +71,7 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 	}
 	// Start conversion on off
 	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
-	_delay_us(0.040);
+	//_delay_us(0.005);
 	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
 	_delay_us(5);
 }
@@ -102,7 +101,7 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	}
 	// Start conversion on off
 	PORTD |= (1 << ADV_CONVERSION_START_2); // set convst 1
-	_delay_us(0.040);
+	//_delay_us(0.005);
 	PORTD &= ~(1 << ADV_CONVERSION_START_2); // set to 0
 	_delay_us(5);
 }
