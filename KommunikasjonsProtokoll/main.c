@@ -429,6 +429,7 @@ int main(void)
 	 UART_TxHead = 0;
 	 
 	// Variable startups for ID and counters.
+	 subComm_Counter = 0;
 	 mainComm_Counter = 0;
 	 maxMainComms = 8;
 	 crc16 = 0xFFFF;
