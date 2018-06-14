@@ -40,7 +40,7 @@
 
 
 /* Size of Buffer*/
-#define UART_BUFFER_SIZE 1024
+#define UART_BUFFER_SIZE 128
 #define UART_TX0_MAXBUFFER (UART_BUFFER_SIZE-1)
 
 
@@ -61,16 +61,16 @@ typedef struct {
 	uint16_t volatile crc16;
 	uint8_t * channelData;
 	uint8_t * channelData_2;
-	uint8_t lastChannelAccessed;
-	uint8_t lastChannelAccessed_2;
+	uint8_t volatile lastChannelAccessed;
+	uint8_t volatile lastChannelAccessed_2;
 } packet_data;
 
 	
 circular_buf_t cbuf;
 packet_data  pData;
 uint8_t array[UART_BUFFER_SIZE];
-uint8_t channels[16];
-uint8_t channels_2[16];
+uint8_t channels[17];
+uint8_t channels_2[17];
 ////////////////////////////////////////////////////////
 ///////////////////////FUNCTIONS////////////////////////
 ////////////////////////////////////////////////////////
@@ -78,18 +78,10 @@ uint8_t channels_2[16];
 void circular_buf_put(circular_buf_t * cbuf,packet_data * pData, uint8_t  data)
 {
 	uint16_t tmphead;
-	uint16_t txtail_tmp;
-	
 	
 	tmphead = (cbuf->head + 1) & UART_TX0_MAXBUFFER; 
-	
-	do {
-		ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			txtail_tmp = cbuf->tail;
-		}
-		
-	} while (tmphead == txtail_tmp); /* wait for free space in buffer */
-	//wdt_reset();
+	while (tmphead == cbuf->tail); /* wait for free space in buffer */
+	////
 	cbuf->buffer[tmphead] = data;
 	cbuf->head = tmphead;
 	
@@ -127,7 +119,7 @@ void Port_Init()
 	// DAC STARTUP PIN CONFIGURATION
 	PORTC = (1<<LD_DAC_2)|(1<<CS_DAC_2);
 	PORTB = (1<<LD_DAC_1)|(1<<CS_DAC_1);
-	//wdt_reset();
+	////
 }
 
 /*! \fn void Port_Init()
@@ -146,7 +138,7 @@ void USART_Init()
 	UCSR0B = (1<<TXEN0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
-//	wdt_reset();
+//	//
 }
 
 /*! \fn void USART_INIT()
@@ -172,7 +164,7 @@ ISR(USART0_UDRE_vect)
 		// When empty, disable the intterupt
 		UCSR0B &= ~(1<<UDRIE0);
 	}
-	//wdt_reset();
+	////
 }
 
 // Last channel accessed, store the data received into channel data
@@ -182,37 +174,37 @@ void channelUpdater_1(uint8_t * datain, packet_data * pData) // if channel and s
 	switch (pData->lastChannelAccessed)
 	{
 		case LTC1859_CH0: // CH0
-		pData->channelData[0] = datain[0];
-		pData->channelData[1] = datain[1];		
-		break;
+			pData->channelData[0] = datain[0];
+			pData->channelData[1] = datain[1];		
+			break;
 		case LTC1859_CH1: // CH1
-		pData->channelData[2] = datain[0];
-		pData->channelData[3] = datain[1];
-		break;
+			pData->channelData[2] = datain[0];
+			pData->channelData[3] = datain[1];
+			break;
 		case LTC1859_CH2: // CH2
-		pData->channelData[4] = datain[0];
-		pData->channelData[5] = datain[1];
-		break;
+			pData->channelData[4] = datain[0];
+			pData->channelData[5] = datain[1];
+			break;
 		case LTC1859_CH3: // CH3
-		pData->channelData[6] = datain[0];
-		pData->channelData[7] = datain[1];
-		break;
+			pData->channelData[6] = datain[0];
+			pData->channelData[7] = datain[1];
+			break;
 		case LTC1859_CH4: // CH4
-		pData->channelData[8] = datain[0];
-		pData->channelData[9] = datain[1];
-		break;
+			pData->channelData[8] = datain[0];
+			pData->channelData[9] = datain[1];
+			break;
 		case LTC1859_CH5: // CH5
-		pData->channelData[10] = datain[0];
-		pData->channelData[11] = datain[1];
-		break;
+			pData->channelData[10] = datain[0];
+			pData->channelData[11] = datain[1];
+			break;
 		case LTC1859_CH6: // CH6
-		pData->channelData[12] = datain[0];
-		pData->channelData[13] = datain[1];
-		break;
+			pData->channelData[12] = datain[0];
+			pData->channelData[13] = datain[1];
+			break;
 		case LTC1859_CH7: // CH7
-		pData->channelData[14] = datain[0];
-		pData->channelData[15] = datain[1];
-		break;
+			pData->channelData[14] = datain[0];
+			pData->channelData[15] = datain[1];
+			break;
 	}
 }
 
@@ -221,37 +213,37 @@ void channelUpdater_2(uint8_t * datain, packet_data * pData) // if channel and s
 	switch (pData->lastChannelAccessed_2)
 	{
 		case LTC1859_CH0: // CH0
-		pData->channelData_2[0] = datain[0];
-		pData->channelData_2[1] = datain[1];
-		break;
+			pData->channelData_2[0] = datain[0];
+			pData->channelData_2[1] = datain[1];
+			break;
 		case LTC1859_CH1: // CH1
-		pData->channelData_2[2] = datain[0];
-		pData->channelData_2[3] = datain[1];
-		break;
+			pData->channelData_2[2] = datain[0];
+			pData->channelData_2[3] = datain[1];
+			break;
 		case LTC1859_CH2: // CH2
-		pData->channelData_2[4] = datain[0];
-		pData->channelData_2[5] = datain[1];
-		break;
+			pData->channelData_2[4] = datain[0];
+			pData->channelData_2[5] = datain[1];
+			break;
 		case LTC1859_CH3: // CH3
-		pData->channelData_2[6] = datain[0];
-		pData->channelData_2[7] = datain[1];
-		break;
+			pData->channelData_2[6] = datain[0];
+			pData->channelData_2[7] = datain[1];
+			break;
 		case LTC1859_CH4: // CH4
-		pData->channelData_2[8] = datain[0];
-		pData->channelData_2[9] = datain[1];
-		break;
+			pData->channelData_2[8] = datain[0];
+			pData->channelData_2[9] = datain[1];
+			break;
 		case LTC1859_CH5: // CH5
-		pData->channelData_2[10] = datain[0];
-		pData->channelData_2[11] = datain[1];
-		break;
+			pData->channelData_2[10] = datain[0];
+			pData->channelData_2[11] = datain[1];
+			break;
 		case LTC1859_CH6: // CH6
-		pData->channelData_2[12] = datain[0];
-		pData->channelData_2[13] = datain[1];
-		break;
+			pData->channelData_2[12] = datain[0];
+			pData->channelData_2[13] = datain[1];
+			break;
 		case LTC1859_CH7: // CH7
-		pData->channelData_2[14] = datain[0];
-		pData->channelData_2[15] = datain[1];
-		break;
+			pData->channelData_2[14] = datain[0];
+			pData->channelData_2[15] = datain[1];
+			break;
 	}
 }
 
@@ -333,43 +325,6 @@ void subCommFormat(circular_buf_t * cbuf, packet_data * pData)
 			circular_buf_put(cbuf,pData,pData->channelData_2[3]);
 			x = 15;		// change to x++ if I2C enabled, else x=15 to skip i2c package.
 			break;
-			// SKIP I2C ^
-		//case 9:
-			//twiDataHandler(VDIG,TWIVOLT, tempVal);
-			//circular_buf_put(cbuf,pData,tempVal[0]);
-			//circular_buf_put(cbuf,pData,tempVal[1]);
-			//x++;
-			//break;
-		//case 10:
-			//twiDataHandler(VDIG,TWICURRENT, tempVal);
-			//circular_buf_put(cbuf,pData,tempVal[0]);
-			//circular_buf_put(cbuf,pData,tempVal[1]);
-			//x = 15;	
-			//break;
-		//case 11:
-			//twiDataHandler(VAPLUS,TWIVOLT, tempVal);
-			//circular_buf_put(cbuf,pData,tempVal[0]);
-			//circular_buf_put(cbuf,pData,tempVal[1]);
-			//x++;
-			//break;
-		//case 12:
-			//twiDataHandler(VAPLUS,TWICURRENT, tempVal);
-			//circular_buf_put(cbuf,pData,tempVal[0]);
-			//circular_buf_put(cbuf,pData,tempVal[1]);
-			//x++;
-			//break;
-		//case 13:
-			//twiDataHandler(VAMINUS,TWIVOLT, tempVal);
-			//circular_buf_put(cbuf,pData,tempVal[0]);
-			//circular_buf_put(cbuf,pData,tempVal[1]);
-			//x++;
-			//break;
-		//case 14:
-			//twiDataHandler(VAMINUS,TWICURRENT, tempVal);
-			//circular_buf_put(cbuf,pData,tempVal[0]);
-			//circular_buf_put(cbuf,pData,tempVal[1]);
-			//x++;
-			//break;
 		case 15:
 			spiTransmitADC_2(tempVal,LTC1859_CH4);
 			channelUpdater_2(tempVal,pData);
@@ -538,6 +493,6 @@ int main(void)
 	while(1)
 	{
 		packetFormat(&cbuf,&pData);
-		wdt_reset();
+		//
 	}
 }

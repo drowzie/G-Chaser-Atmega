@@ -58,11 +58,11 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 		PORTE &= ~(1<<ADC_READ_1); // low
 		SPDR0 = datain; // Transmit data
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-		wdt_reset();
+		//
 		dataout[0] = SPDR0;	 // Get MSB
 		SPDR0 = 0x00; // transmit dummy byte
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-		wdt_reset();
+		//
 		dataout[1] = SPDR0;	 // Get MSB
 		PORTE |= (1<<ADC_READ_1); // high
 		
@@ -92,11 +92,11 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 		PORTD &= ~(1<<ADC_READ_2); // low
 		SPDR0 = datain; // Transmit data
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-		wdt_reset();
+		//
 		dataout[0] = SPDR0;	 // Get MSB
 		SPDR0 = 0x00; // transmit dummy byte
 		while(!(SPSR0 & (1<<SPIF)))	// Wait for transmit complete
-		wdt_reset();
+		//
 		dataout[1] = SPDR0;	 // Get MSB
 		PORTD |= (1<<ADC_READ_2); // high
 	}
@@ -132,17 +132,17 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 	// Send data
 	SPDR0 = dacAdress;
 	while(!(SPSR0 & (1<<SPIF)));
-	wdt_reset();
+	//
 	SPDR0 = dacData;
 	while(!(SPSR0 & (1<<SPIF)));
-	wdt_reset();
+	//
 	// End
 	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
 	PORTB |= (1<<CS_DAC_1); // Chip Select go high
 	// Strobe the Load Data pin
 	PORTB &= ~(1<<LD_DAC_1); // Stop data in.
 	PORTB |= (1<<LD_DAC_1);  // set to 1
-	_delay_us(0.1);
+	_delay_us(1);
 }
 
 /*! \fn void spiTransmitDAC_1 
@@ -159,17 +159,17 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 	// Send data
 	SPDR0 = dacAdress;
 	while(!(SPSR0 & (1<<SPIF)));
-	wdt_reset();
+	//
 	SPDR0 = dacData;
 	while(!(SPSR0 & (1<<SPIF)));
-	wdt_reset();
+	//
 	// End
 	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
 	PORTC |= (1<<CS_DAC_2); // Chip Select go high
 	// Strobe the Load Data pin
 	PORTC &= ~(1<<LD_DAC_2); // Stop data in.
 	PORTC |= (1<<LD_DAC_2);  // set to 1
-	_delay_us(0.1);
+	_delay_us(1);
 }
 
 
@@ -192,7 +192,7 @@ void TWIStart(void)
 {
 	TWCR0 = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
 	while ((TWCR0 & (1<<TWINT)) == 0);
-	//wdt_reset();
+	////
 }
 //send stop signal
 void TWIStop(void)
@@ -205,14 +205,14 @@ void TWIWrite(uint8_t u8data)
 	TWDR0 = u8data;
 	TWCR0 = (1<<TWINT)|(1<<TWEN);
 	while ((TWCR0 & (1<<TWINT)) == 0);
-	//wdt_reset();
+	////
 }
 
 uint8_t TWIReadACK(void)
 {
 	TWCR0 = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);
 	while ((TWCR0 & (1<<TWINT)) == 0);
-	//wdt_reset();
+	////
 	return TWDR0;
 }
 //read byte with NACK
@@ -220,7 +220,7 @@ uint8_t TWIReadNACK(void)
 {
 	TWCR0 = (1<<TWINT)|(1<<TWEN);
 	while ((TWCR0 & (1<<TWINT)) == 0);
-	//wdt_reset();
+	////
 	return TWDR0;
 }
 uint8_t TWIGetStatus(void)
