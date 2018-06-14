@@ -72,7 +72,7 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 	}
 	// Start conversion on off
 	PORTE |= (1 << ADV_CONVERSION_START_1); // set convst 1
-	_delay_us(0.005);
+	_delay_us(0.040);
 	PORTE &= ~(1 << ADV_CONVERSION_START_1); // set to 0
 	_delay_us(5);
 }
@@ -102,7 +102,7 @@ void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 	}
 	// Start conversion on off
 	PORTD |= (1 << ADV_CONVERSION_START_2); // set convst 1
-	_delay_us(0.005);
+	_delay_us(0.040);
 	PORTD &= ~(1 << ADV_CONVERSION_START_2); // set to 0
 	_delay_us(5);
 }
@@ -128,7 +128,7 @@ void spi_init_dac()
 void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData) 
 {
 	PORTB &= ~(1<<CS_DAC_1); // Chip Select go low
-	_delay_us(0.10); // data sheet says 15ns for TSS, 10ns + clock time
+	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
 	// Send data
 	SPDR0 = dacAdress;
 	while(!(SPSR0 & (1<<SPIF)));
@@ -142,7 +142,7 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 	// Strobe the Load Data pin
 	PORTB &= ~(1<<LD_DAC_1); // Stop data in.
 	PORTB |= (1<<LD_DAC_1);  // set to 1
-	_delay_us(1);
+	_delay_us(5);
 }
 
 /*! \fn void spiTransmitDAC_1 
@@ -162,14 +162,12 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 	//
 	SPDR0 = dacData;
 	while(!(SPSR0 & (1<<SPIF)));
-	//
-	// End
 	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
 	PORTC |= (1<<CS_DAC_2); // Chip Select go high
 	// Strobe the Load Data pin
 	PORTC &= ~(1<<LD_DAC_2); // Stop data in.
 	PORTC |= (1<<LD_DAC_2);  // set to 1
-	_delay_us(1);
+	_delay_us(5);
 }
 
 

@@ -432,7 +432,6 @@ void packetFormat(circular_buf_t * cbuf,packet_data * pData)
 
 int main(void)
 {
-	 //watchdog_enable(); // enable watchdog timer System reset
 	// Struct defines
 	 cbuf.buffer = array;
 	 cbuf.size = UART_BUFFER_SIZE;
@@ -445,6 +444,13 @@ int main(void)
 	 pData.channelData_2 = channels_2;
 	 pData.lastChannelAccessed = 0;
 	 pData.lastChannelAccessed_2 = 0;
+	 //default value
+	for (volatile int i = 0;i<16;i++)
+	{
+		pData.channelData[i] = 0;
+		pData.channelData_2[i] = 0;
+	}
+	 
 	USART_Init();
 	Port_Init();
 	// For testing one I2C channel
