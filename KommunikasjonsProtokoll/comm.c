@@ -170,102 +170,102 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 	_delay_us(5);
 }
 
-
-#pragma region i2c
-
-// A detailed guide about using I2C and these functions is seen in datasheet for ATMEGA328PB
-// I2C Defines
-#define TWI_FREQ 10000
-#define Prescaler 16
-
-void i2c_init(void)
-{
-	TWSR0 = (1<<TWPS1)|(0<<TWPS0);
-	TWBR0 = ((((F_CPU / TWI_FREQ) / Prescaler) - 16 ) / 2);
-	TWCR0 = (1<<TWEN);
-	PORTC |= (1<<PORTC5)|(1<<PORTC4);
-}
-
-void TWIStart(void)
-{
-	TWCR0 = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
-	while ((TWCR0 & (1<<TWINT)) == 0);
+//
+//#pragma region i2c
+//
+//// A detailed guide about using I2C and these functions is seen in datasheet for ATMEGA328PB
+//// I2C Defines
+//#define TWI_FREQ 10000
+//#define Prescaler 16
+//
+//void i2c_init(void)
+//{
+	//TWSR0 = (1<<TWPS1)|(0<<TWPS0);
+	//TWBR0 = ((((F_CPU / TWI_FREQ) / Prescaler) - 16 ) / 2);
+	//TWCR0 = (1<<TWEN);
+	//PORTC |= (1<<PORTC5)|(1<<PORTC4);
+//}
+//
+//void TWIStart(void)
+//{
+	//TWCR0 = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
+	//while ((TWCR0 & (1<<TWINT)) == 0);
+	//////
+//}
+////send stop signal
+//void TWIStop(void)
+//{
+	//TWCR0 = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN);
+//}
+//
+//void TWIWrite(uint8_t u8data)
+//{
+	//TWDR0 = u8data;
+	//TWCR0 = (1<<TWINT)|(1<<TWEN);
+	//while ((TWCR0 & (1<<TWINT)) == 0);
+	//////
+//}
+//
+//uint8_t TWIReadACK(void)
+//{
+	//TWCR0 = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);
+	//while ((TWCR0 & (1<<TWINT)) == 0);
+	//////
+	//return TWDR0;
+//}
+////read byte with NACK
+//uint8_t TWIReadNACK(void)
+//{
+	//TWCR0 = (1<<TWINT)|(1<<TWEN);
+	//while ((TWCR0 & (1<<TWINT)) == 0);
+	//////
+	//return TWDR0;
+//}
+//uint8_t TWIGetStatus(void)
+//{
+	//uint8_t status;
+	////mask status
+	//status = TWSR0 & 0xF8;
+	//return status;
+//}
+//uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout) 
+//{
+		//TWIStart();
+		//if (TWIGetStatus() != TW_START) // check for start
+			//{return Error;}
+		//TWIWrite(address|TW_WRITE);
+		//if (TWIGetStatus() != TW_MT_SLA_ACK) // check for ack
+			//{return Error;}
+		//TWIWrite(reg);
+		//if (TWIGetStatus() != TW_MT_DATA_ACK) // check if data has been transmitted and ack recieved
+			//{return Error;}
+		//TWIStart();
+		//if (TWIGetStatus() != TW_REP_START) // check if data has been transmitted and ack recieved
+			//{return Error;}
+		//TWIWrite(address|TW_READ);
+		//if (TWIGetStatus() != TW_MR_SLA_ACK)    // Master reciever mode ack
+			//{return Error;}
+		//dataout[0] = TWIReadACK();				// Get the first value of register: 8MSB
+		//if (TWIGetStatus() != TW_MR_DATA_ACK)	// Master recieve data ack
+			//{return Error;}
+		//dataout[1] = TWIReadNACK();				// Get the next value of register: 4LSB
+		//if (TWIGetStatus() != TW_MR_DATA_NACK)  // Master recieve nack
+			//{return Error;}
+		//TWIStop();
+	//return Success;
+//}
+//
+//void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout)
+//{
+	////_delay_us(30); 
+	//if(PWMReadByte(address,reg, dataout) == Error) // IF ERROR
+	//{		
+		//dataout[0] = 0x80;						
+		//dataout[1] = 0x80;
+		//TWCR0 = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN); // send stop condition
+	//}
 	////
-}
-//send stop signal
-void TWIStop(void)
-{
-	TWCR0 = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN);
-}
-
-void TWIWrite(uint8_t u8data)
-{
-	TWDR0 = u8data;
-	TWCR0 = (1<<TWINT)|(1<<TWEN);
-	while ((TWCR0 & (1<<TWINT)) == 0);
-	////
-}
-
-uint8_t TWIReadACK(void)
-{
-	TWCR0 = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);
-	while ((TWCR0 & (1<<TWINT)) == 0);
-	////
-	return TWDR0;
-}
-//read byte with NACK
-uint8_t TWIReadNACK(void)
-{
-	TWCR0 = (1<<TWINT)|(1<<TWEN);
-	while ((TWCR0 & (1<<TWINT)) == 0);
-	////
-	return TWDR0;
-}
-uint8_t TWIGetStatus(void)
-{
-	uint8_t status;
-	//mask status
-	status = TWSR0 & 0xF8;
-	return status;
-}
-uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout) 
-{
-		TWIStart();
-		if (TWIGetStatus() != TW_START) // check for start
-			{return Error;}
-		TWIWrite(address|TW_WRITE);
-		if (TWIGetStatus() != TW_MT_SLA_ACK) // check for ack
-			{return Error;}
-		TWIWrite(reg);
-		if (TWIGetStatus() != TW_MT_DATA_ACK) // check if data has been transmitted and ack recieved
-			{return Error;}
-		TWIStart();
-		if (TWIGetStatus() != TW_REP_START) // check if data has been transmitted and ack recieved
-			{return Error;}
-		TWIWrite(address|TW_READ);
-		if (TWIGetStatus() != TW_MR_SLA_ACK)    // Master reciever mode ack
-			{return Error;}
-		dataout[0] = TWIReadACK();				// Get the first value of register: 8MSB
-		if (TWIGetStatus() != TW_MR_DATA_ACK)	// Master recieve data ack
-			{return Error;}
-		dataout[1] = TWIReadNACK();				// Get the next value of register: 4LSB
-		if (TWIGetStatus() != TW_MR_DATA_NACK)  // Master recieve nack
-			{return Error;}
-		TWIStop();
-	return Success;
-}
-
-void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout)
-{
-	//_delay_us(30); 
-	if(PWMReadByte(address,reg, dataout) == Error) // IF ERROR
-	{		
-		dataout[0] = 0x80;						
-		dataout[1] = 0x80;
-		TWCR0 = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN); // send stop condition
-	}
-	//
-};
+//};
 
 
 
