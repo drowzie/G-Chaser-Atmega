@@ -73,18 +73,16 @@ void circular_buf_put(uint8_t  data)
 	
 	tmphead = (UART_TxHead + 1) & UART_TX0_MAXBUFFER; 
 	while (tmphead == UART_TxTail); /* wait for free space in buffer */
-	////
+	wdt_reset();
 	UART_TxBuf[tmphead] = data;
-	
 	UART_TxHead = tmphead;
-	
 	UCSR0B |= (1<<UDRIE0); // enable interrupt when buffer is increasing again.
-	
 	// Update CRC only when above ID(#2 and below CRC)
 	if(mainComm_Counter > 0 && mainComm_Counter < maxMainComms)
 	{
 		crc16 = _crc_xmodem_update(crc16, data);
 	}
+	wdt_reset();
 }
 
 /*! \fn void circular_buf_put(circular_buf_t * cbuf,packet_data *  uint8_t  data)
@@ -112,7 +110,7 @@ void Port_Init()
 	// DAC STARTUP PIN CONFIGURATION
 	PORTC = (1<<LD_DAC_2)|(1<<CS_DAC_2);
 	PORTB = (1<<LD_DAC_1)|(1<<CS_DAC_1);
-	////
+	wdt_reset();
 }
 
 /*! \fn void Port_Init()
@@ -131,7 +129,7 @@ void USART_Init()
 	UCSR0B = (1<<TXEN0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
-//	//
+	wdt_reset();
 }
 
 /*! \fn void USART_INIT()
@@ -157,7 +155,7 @@ ISR(USART0_UDRE_vect)
 		// When empty, disable the intterupt
 		UCSR0B &= ~(1<<UDRIE0);
 	}
-	////
+	wdt_reset();
 }
 
 // Last channel accessed, store the data received into channel data
@@ -431,6 +429,7 @@ void packetFormat()
 
 int main(void)
 {
+	watchdog_enable();
 	// Defines for the UART buffer.
 	 UART_TxTail = 0;
 	 UART_TxHead = 0;
@@ -443,14 +442,17 @@ int main(void)
 	 lastChannelAccessed = 0;
 	 lastChannelAccessed_2 = 0;
 	 //default value
+	 wdt_reset();
 	for (volatile int i = 0; i<16; i++)
 	{
 		channelData[i] = 0;
 		channelData_2[i] = 0;
+		wdt_reset();
 	}
 	 
 	USART_Init();
 	Port_Init();
+	wdt_reset();
 	// For testing one I2C channel
 #pragma region i2cTEST
 	 	//i2c_init();
