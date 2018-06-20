@@ -40,8 +40,9 @@
         </dependencies>
       </framework-data>
     </AsfFrameworkConfig>
-    <avrtool>com.atmel.avrdbg.tool.atmelice</avrtool>
-    <avrtoolserialnumber>J41800089134</avrtoolserialnumber>
+    <avrtool>com.atmel.avrdbg.tool.simulator</avrtool>
+    <avrtoolserialnumber>
+    </avrtoolserialnumber>
     <avrdeviceexpectedsignature>0x1E9516</avrdeviceexpectedsignature>
     <com_atmel_avrdbg_tool_simulator>
       <ToolOptions>

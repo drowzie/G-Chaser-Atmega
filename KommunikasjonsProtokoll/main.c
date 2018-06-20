@@ -4,10 +4,11 @@
 
 /*!
  *\author Christoffer Boothby and James Alexander Cowie
- *\version 0.4.4
  *\date 2018
  *\copyright GNU Public License.
  */
+
+#define version 0x0441 
 
 /* Comments:
  * This C code is made for G-Chaser project on the "EL-BOKS" card, made by Erlend Restad.
@@ -20,6 +21,7 @@
  * I2C Communication is made for the IC LTC4151.
  *
  */
+
 
 // UART settings
 #include "comm.h"
@@ -51,8 +53,6 @@ static volatile uint8_t UART_TxTail;
 //////////////////// Variables /////////////////////////
 ////////////////////////////////////////////////////////
 
-
-
 uint8_t volatile mainComm_Counter; // Choose which packet to be sent out.
 uint8_t volatile subComm_Counter; // Choose which of the subcomms to be used and sent out.
 uint8_t volatile maxMainComms; // For CRC updater to skip when sending in CRC.
@@ -75,6 +75,7 @@ void circular_buf_put(uint8_t  data)
 	while (tmphead == UART_TxTail); /* wait for free space in buffer */
 	////
 	UART_TxBuf[tmphead] = data;
+	
 	UART_TxHead = tmphead;
 	
 	UCSR0B |= (1<<UDRIE0); // enable interrupt when buffer is increasing again.
@@ -148,7 +149,7 @@ ISR(USART0_UDRE_vect)
 	if(UART_TxHead != UART_TxTail)
 	{
 		tmptail = (UART_TxTail + 1) & UART_TX0_MAXBUFFER; // Reset when reaching maximum buffer size
-		UART_TxTail = tmptail;
+		UART_TxTail = tmptail; // Update Tail
 		UDR0 = UART_TxBuf[tmptail];
 		//_delay_ms(1);
 	}	
@@ -331,6 +332,11 @@ void subCommFormat()
 			lastChannelAccessed_2 = LTC1859_CH5;
 			circular_buf_put(channelData_2[10]);
 			circular_buf_put(channelData_2[11]);
+			x++;
+			break;
+		case 17:
+			circular_buf_put(version>>8);
+			circular_buf_put((uint8_t)version);
 			x = 0;
 			break;
 	}
