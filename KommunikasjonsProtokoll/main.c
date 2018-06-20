@@ -8,7 +8,7 @@
  *\copyright GNU Public License.
  */
 
-#define version 0x0441 
+#define version 0x0442 
 
 /* Comments:
  * This C code is made for G-Chaser project on the "EL-BOKS" card, made by Erlend Restad.
@@ -81,7 +81,7 @@ void circular_buf_put(uint8_t  data)
 	UCSR0B |= (1<<UDRIE0); // enable interrupt when buffer is increasing again.
 	
 	// Update CRC only when above ID(#2 and below CRC)
-	if(mainComm_Counter > 0 && mainComm_Counter < mainComm_Counter)
+	if(mainComm_Counter > 0 && mainComm_Counter < maxMainComms)
 	{
 		crc16 = _crc_xmodem_update(crc16, data);
 	}
@@ -418,6 +418,7 @@ void packetFormat()
 			i = 0;
 			break;
 	}
+	
 	mainComm_Counter = i;
 }
 
