@@ -21,6 +21,7 @@ void watchdog_enable()
 {
 	WDTCSR = (1<<WDE)|(0<<WDP3)|(0<<WDP2)|(0<<WDP1)|(0<<WDP0);
 	wdt_enable(WDTO_30MS);
+	wdt_reset();
 }
 
 // SPI defines - Not all ports are correctly set...
@@ -52,6 +53,7 @@ void spi_init_adc()
 
 void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 {
+	wdt_reset();
 	//while((PORTC & (1<<ADC_1_BUSY))); // When busy is high
 	ATOMIC_BLOCK(ATOMIC_FORCEON) {	
 		PORTE &= ~(1<<ADC_READ_1); // low
@@ -87,6 +89,7 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain)
 
 void spiTransmitADC_1(uint8_t * dataout, uint8_t datain)
 {
+	wdt_reset();
 	//while((PORTB & (1<<ADC_2_BUSY))); // When busy is high
 	ATOMIC_BLOCK(ATOMIC_FORCEON) {
 		PORTD &= ~(1<<ADC_READ_2); // low
@@ -128,6 +131,7 @@ void spi_init_dac()
 
 void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData) 
 {
+	wdt_reset();
 	PORTB &= ~(1<<CS_DAC_1); // Chip Select go low
 	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
 	// Send data
@@ -156,6 +160,7 @@ void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData)
 
 void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 {
+	wdt_reset();
 	PORTC &= ~(1<<CS_DAC_2); // Chip Select go low
 	_delay_us(0.010); // data sheet says 15ns for TSS, 10ns + clock time
 	// Send data

@@ -142,8 +142,8 @@ void USART_Init()
 // Interrupt handler
 ISR(USART0_UDRE_vect)	
 {
+	wdt_reset();
 	uint16_t tmptail;
-	
 	if(UART_TxHead != UART_TxTail)
 	{
 		tmptail = (UART_TxTail + 1) & UART_TX0_MAXBUFFER; // Reset when reaching maximum buffer size
@@ -197,6 +197,7 @@ void channelUpdater_1(uint8_t * datain) // if channel and store value
 			channelData[15] = datain[1];
 			break;
 	}
+	wdt_reset();
 }
 
 void channelUpdater_2(uint8_t * datain) // if channel and store value
@@ -236,6 +237,7 @@ void channelUpdater_2(uint8_t * datain) // if channel and store value
 			channelData_2[15] = datain[1];
 			break;
 	}
+	wdt_reset();
 }
 
 
@@ -339,7 +341,7 @@ void subCommFormat()
 			break;
 	}
 	subComm_Counter = x;
-
+	wdt_reset();
 }
 /*! \fn void subCommFormat() 
  * \brief subcomm packet, will repeat itself
@@ -418,6 +420,7 @@ void packetFormat()
 	}
 	
 	mainComm_Counter = i;
+	wdt_reset();
 }
 
 /*! \fn void packetFormat() 
