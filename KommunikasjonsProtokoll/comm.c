@@ -20,7 +20,7 @@
 void watchdog_enable()
 {
 	WDTCSR = (1<<WDE)|(0<<WDP3)|(0<<WDP2)|(0<<WDP1)|(0<<WDP0);
-	wdt_enable(WDTO_15MS);
+	wdt_enable(WDTO_30MS);
 }
 
 // SPI defines - Not all ports are correctly set...

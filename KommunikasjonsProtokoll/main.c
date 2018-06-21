@@ -8,7 +8,7 @@
  *\copyright GNU Public License.
  */
 
-#define version 0x0442 
+#define version 0x0443 
 
 /* Comments:
  * This C code is made for G-Chaser project on the "EL-BOKS" card, made by Erlend Restad.
@@ -445,8 +445,8 @@ int main(void)
 	 wdt_reset();
 	for (volatile int i = 0; i<16; i++)
 	{
-		channelData[i] = 0;
-		channelData_2[i] = 0;
+		channelData[i] = 0xBB;
+		channelData_2[i] = 0xBB;
 		wdt_reset();
 	}
 	 
