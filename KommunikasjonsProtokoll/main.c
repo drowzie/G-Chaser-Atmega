@@ -8,7 +8,7 @@
  *\copyright GNU Public License.
  */
 
-#define version 0x0501 
+#define version 0x0503 
 
 /* Comments:
  * This C code is made for G-Chaser project on the "EL-BOKS" card, made by Erlend Restad.
@@ -95,97 +95,90 @@ void USART_Init()
 	UBRR0L = UBRRL_VALUE;
 	
 	/* Enable transmitter */
-	UCSR0B = (1<<TXEN0);
+	UCSR0B = (1<<TXEN0)|(1<<TXCIE0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
 	wdt_reset();
 }
 
-/*! \fn void USART_INIT()
- * \brief USART init of BAUD
- * \param None.
- * \return None.
-*/
-
 
 // Interrupt handler
-ISR(USART0_UDRE_vect)	
+ISR(USART0_TX_vect)	
 {
-	uint8_t y = mainComm_Counter;
-	switch(y)
+	switch(mainComm_Counter)
 	{
 		case 0: // SYNC 1
 			UDR0 = 0x6B;
-			y++;
+			mainComm_Counter++;
 			break;
 		case 1: // SYNC 2
 			UDR0 = 0x90;
-			y++;
+			mainComm_Counter++;
 			break;
 		case 2: // SUBCOMM
 			crc16 = _crc_xmodem_update(crc16, packetID);
 			UDR0 = packetID;
-			y++;
+			mainComm_Counter++;
 			break;
 		case 3: // GT1-1 
 			tempData[0] = channelData[4];
 			tempData[1] = channelData[5];
 			crc16 = _crc_xmodem_update(crc16, tempData[0]);
 			UDR0 = tempData[0];
-			y++;
+			mainComm_Counter++;
 			break;
 		case 4: // GT1-2
 			crc16 = _crc_xmodem_update(crc16, tempData[1]);
 			UDR0 = tempData[1];
-			y++;
+			mainComm_Counter++;
 			break;
 		case 5: // GT2-1
 			tempData[0] = channelData_2[4];
 			tempData[1] = channelData_2[5];
 			crc16 = _crc_xmodem_update(crc16, tempData[0]);
 			UDR0 = tempData[0];
-			y++;
+			mainComm_Counter++;
 			break;
 		case 6: // GT2-2
 			crc16 = _crc_xmodem_update(crc16, tempData[1]);
 			UDR0 = tempData[1];
-			y++;
+			mainComm_Counter++;
 			break;
 		case 7: // MP-1
 			tempData[0] = channelData[8];
 			tempData[1] = channelData[9];
 			crc16 = _crc_xmodem_update(crc16, tempData[0]);
 			UDR0 = tempData[0];
-			y++;
+			mainComm_Counter++;
 			break;
 		case 8: // MP-2
 			crc16 = _crc_xmodem_update(crc16, tempData[1]);
 			UDR0 = tempData[1];
-			y++;
+			mainComm_Counter++;
 			break;
 		case 9: // GB2-1
 			tempData[0] = channelData_2[12];
 			tempData[1] = channelData_2[13];
 			crc16 = _crc_xmodem_update(crc16, tempData[0]);
 			UDR0 = tempData[0];
-			y++;
+			mainComm_Counter++;
 			break;
 		case 10: // GB2-2
 			crc16 = _crc_xmodem_update(crc16, tempData[1]);
 			UDR0 = tempData[1];
-			y++;
+			mainComm_Counter++;
 			break;
 		case 11: // GB1-1
 			tempData[0] = channelData[12];
 			tempData[1] = channelData[13];
 			crc16 = _crc_xmodem_update(crc16, tempData[0]);
 			UDR0 = tempData[0];
-			y++;
+			mainComm_Counter++;
 			break;
 		case 12: // GB1-2
 			crc16 = _crc_xmodem_update(crc16, tempData[1]);
 			UDR0 = tempData[1];
-			y++;
+			mainComm_Counter++;
 			break;
 		case 13:
 			switch(subComm_Counter)
@@ -406,20 +399,18 @@ ISR(USART0_UDRE_vect)
 					break;
 			}
 			if (subComm_Counter % 2 == 0) {packetID = (packetID + 1) % 18;} // For PacketId increase
-			else {y++;} // When to transfer next packet of maincomm
+			else {mainComm_Counter++;} // When to transfer next packet of maincomm
 			break;
 		case 14: // CRC-1
 			UDR0 = (crc16>>8);
-			y++;
+			mainComm_Counter++;
 			break;
 		case 15: //CRC-2
 			UDR0 = (uint8_t)crc16;
-			y = 0;
+			mainComm_Counter = 0;
 			crc16 = 0xFFFF;
 			break;
 	}
-	
-	mainComm_Counter = y;
 }
 
 // Last channel accessed, store the data received into channel data
@@ -698,6 +689,7 @@ int main(void)
 	USART_Init();
 	Port_Init();
 	wdt_reset();
+	i2c_init();
 	// For testing one I2C channel
 #pragma region i2cTEST
 	 	//i2c_init();
