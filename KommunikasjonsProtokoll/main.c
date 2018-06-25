@@ -8,7 +8,7 @@
  *\copyright GNU Public License.
  */
 
-#define version 0x0500 
+#define version 0x0501 
 
 /* Comments:
  * This C code is made for G-Chaser project on the "EL-BOKS" card, made by Erlend Restad.
@@ -405,7 +405,7 @@ ISR(USART0_UDRE_vect)
 					subComm_Counter = 0;
 					break;
 			}
-			if (subComm_Counter % 2 == 0) {packetID = (packetID + 1) % 35;} // For PacketId increase
+			if (subComm_Counter % 2 == 0) {packetID = (packetID + 1) % 18;} // For PacketId increase
 			else {y++;} // When to transfer next packet of maincomm
 			break;
 		case 14: // CRC-1
@@ -674,6 +674,7 @@ int main(void)
 
 	// Variable startups for ID and counters.
 	 subComm_Counter = 0;
+	 packetID = 0;
 	 mainComm_Counter = 0;
 	 mainRefresher_Counter = 2;
 	 subRefresher_Counter = 0;
