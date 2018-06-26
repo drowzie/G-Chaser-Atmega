@@ -8,7 +8,7 @@
  *\copyright GNU Public License.
  */
 
-#define version 0x0503 
+#define version 0x58
 
 /* Comments:
  * This C code is made for G-Chaser project on the "EL-BOKS" card, made by Erlend Restad.
@@ -32,7 +32,6 @@
 #include <stdlib.h>
 #include <util/crc16.h>
 #include <util/delay.h>
-#include <util/twi.h>
 #include <util/atomic.h>
 #include <avr/wdt.h>
 
@@ -52,15 +51,15 @@ uint8_t volatile packetID;
 uint8_t volatile mainRefresher_Counter;
 uint8_t volatile subRefresher_Counter;
 
-uint8_t volatile maxMainComms; // For CRC updater to skip when sending in CRC.
 uint16_t volatile crc16;
-uint8_t channelData[16];
-uint8_t channelData_2[16];
-uint8_t channelData_i2c[12];
+uint8_t volatile channelData[17];
+uint8_t volatile channelData_2[17];
+uint8_t volatile channelData_i2c[13];
 uint8_t volatile lastChannelAccessed;
 uint8_t volatile lastChannelAccessed_2;
-uint8_t tempData[2];
+uint8_t volatile tempData[3];
 
+uint8_t mcusr;
 
 
 void Port_Init()
@@ -79,7 +78,7 @@ void Port_Init()
 	// DAC STARTUP PIN CONFIGURATION
 	PORTC = (1<<LD_DAC_2)|(1<<CS_DAC_2);
 	PORTB = (1<<LD_DAC_1)|(1<<CS_DAC_1);
-	wdt_reset();
+	// wdt_reset();
 }
 
 /*! \fn void Port_Init()
@@ -95,15 +94,15 @@ void USART_Init()
 	UBRR0L = UBRRL_VALUE;
 	
 	/* Enable transmitter */
-	UCSR0B = (1<<TXEN0)|(1<<TXCIE0);
+	UCSR0B = (1<<TXEN0)|(1<<UDRIE0);
 	/* Set frame format: 8data, 1stop bit */
 	UCSR0C = (0<<USBS0)|(3<<UCSZ00);
-	wdt_reset();
+	// wdt_reset();
 }
 
 
 // Interrupt handler
-ISR(USART0_TX_vect)	
+ISR(USART0_UDRE_vect)	
 {
 	switch(mainComm_Counter)
 	{
@@ -189,11 +188,13 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID++;
 					break;
 				case 1:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
 					subComm_Counter++;
+					mainComm_Counter++;
 					break;
 				case 2: // Bias GT2
 					tempData[0] = channelData_2[6];
@@ -201,11 +202,13 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID++;
 					break;
 				case 3:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
 					subComm_Counter++;
+					mainComm_Counter++;
 					break;
 				case 4: // Bias MP
 					tempData[0] = channelData[10];
@@ -213,11 +216,13 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID++;
 					break;
 				case 5:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
 					subComm_Counter++;
+					mainComm_Counter++;
 					break;
 				case 6: // Bias GB2
 					tempData[0] = channelData_2[14];
@@ -225,11 +230,13 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID++;
 					break;
 				case 7:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
 					subComm_Counter++;
+					mainComm_Counter++;
 					break;
 				case 8: // Bias GB1
 					tempData[0] = channelData[14];
@@ -237,11 +244,13 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID++;
 					break;
 				case 9:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
 					subComm_Counter++;
+					mainComm_Counter++;
 					break;
 				case 10: // PCB1 INT
 					tempData[0] = channelData[0];
@@ -249,11 +258,13 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID++;
 					break;
 				case 11:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
 					subComm_Counter++;
+					mainComm_Counter++;
 					break;
 				case 12: // PCB1 EXT
 					tempData[0] = channelData[2];
@@ -261,11 +272,13 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID++;
 					break;
 				case 13:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
 					subComm_Counter++;
+					mainComm_Counter++;
 					break;
 				case 14: // PCB2 INT
 					tempData[0] = channelData_2[0];
@@ -273,11 +286,13 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID++;
 					break;
 				case 15:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
 					subComm_Counter++;
+					mainComm_Counter++;
 					break;
 				case 16: // PCB2 EXT
 					tempData[0] = channelData_2[2];
@@ -285,83 +300,13 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID = 16;
 					break;
 				case 17:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
-					subComm_Counter++;
-					break;
-				case 18: // UDIG
-					tempData[0] = channelData_i2c[0];
-					tempData[1] = channelData_i2c[1];
-					crc16 = _crc_xmodem_update(crc16, tempData[0]);
-					UDR0 = tempData[0];
-					subComm_Counter++;
-					break;
-				case 19:
-					crc16 = _crc_xmodem_update(crc16, tempData[1]);
-					UDR0 = tempData[1];
-					subComm_Counter++;
-					break;
-				case 20: // IDIG
-					tempData[0] = channelData_i2c[2];
-					tempData[1] = channelData_i2c[3];
-					crc16 = _crc_xmodem_update(crc16, tempData[0]);
-					UDR0 = tempData[0];
-					subComm_Counter++;
-					break;
-				case 21:
-					crc16 = _crc_xmodem_update(crc16, tempData[1]);
-					UDR0 = tempData[1];
-					subComm_Counter++;
-					break;
-				case 22: //UVA+
-					tempData[0] = channelData_i2c[4];
-					tempData[1] = channelData_i2c[5];
-					crc16 = _crc_xmodem_update(crc16, tempData[0]);
-					UDR0 = tempData[0];
-					subComm_Counter++;
-					break;
-				case 23:
-					crc16 = _crc_xmodem_update(crc16, tempData[1]);
-					UDR0 = tempData[1];
-					subComm_Counter++;
-					break;
-				case 24: //IVA+
-					tempData[0] = channelData_i2c[6];
-					tempData[1] = channelData_i2c[7];
-					crc16 = _crc_xmodem_update(crc16, tempData[0]);
-					UDR0 = tempData[0];
-					subComm_Counter++;
-					break;
-				case 25:
-					crc16 = _crc_xmodem_update(crc16, tempData[1]);
-					UDR0 = tempData[1];
-					subComm_Counter++;
-					break;
-				case 26: // UVA-
-					tempData[0] = channelData_i2c[8];
-					tempData[1] = channelData_i2c[9];
-					crc16 = _crc_xmodem_update(crc16, tempData[0]);
-					UDR0 = tempData[0];
-					subComm_Counter++;
-					break;
-				case 27:
-					crc16 = _crc_xmodem_update(crc16, tempData[1]);
-					UDR0 = tempData[1];
-					subComm_Counter++;
-					break;
-				case 28: // IVA-
-					tempData[0] = channelData_i2c[10];
-					tempData[1] = channelData_i2c[11];
-					crc16 = _crc_xmodem_update(crc16, tempData[0]);
-					UDR0 = tempData[0];
-					subComm_Counter++;
-					break;
-				case 29:
-					crc16 = _crc_xmodem_update(crc16, tempData[1]);
-					UDR0 = tempData[1];
-					subComm_Counter++;
+					subComm_Counter = 30;
+					mainComm_Counter++;
 					break;
 				case 30: // SP
 					tempData[0] = channelData_2[8];
@@ -369,11 +314,13 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID++;
 					break;
 				case 31: 
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
 					subComm_Counter++;
+					mainComm_Counter++;
 					break;
 				case 32: // BIAS SP
 					tempData[0] = channelData_2[10];
@@ -381,25 +328,32 @@ ISR(USART0_TX_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
+					packetID++;
 					break;
 				case 33:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
 					UDR0 = tempData[1];
 					subComm_Counter++;
+					mainComm_Counter++;
 					break;
 				case 34: // Version #
-					crc16 = _crc_xmodem_update(crc16, (version>>8));
-					UDR0 = (version>>8);
+					crc16 = _crc_xmodem_update(crc16, MCUSR);
+					UDR0 = mcusr;
 					subComm_Counter++;
+					packetID = 0;
 					break;
 				case 35:
-					crc16 = _crc_xmodem_update(crc16, (uint8_t)version);
+					crc16 = _crc_xmodem_update(crc16, version);
 					UDR0 = (uint8_t)version;
 					subComm_Counter = 0;
+					mainComm_Counter++;
 					break;
+				default:
+					subComm_Counter = 0;
+					mainComm_Counter = 0;
+					UDR0 = 0xBC;
+					crc16 = 0xFFFF;
 			}
-			if (subComm_Counter % 2 == 0) {packetID = (packetID + 1) % 18;} // For PacketId increase
-			else {mainComm_Counter++;} // When to transfer next packet of maincomm
 			break;
 		case 14: // CRC-1
 			UDR0 = (crc16>>8);
@@ -410,6 +364,11 @@ ISR(USART0_TX_vect)
 			mainComm_Counter = 0;
 			crc16 = 0xFFFF;
 			break;
+		default:
+			mainComm_Counter = 0;
+			crc16 = 0xFFFF;
+			subComm_Counter = 0;
+			UDR0 = 0xBC;
 	}
 }
 
@@ -452,7 +411,7 @@ void channelUpdater_1(uint8_t * datain) // if channel and store value
 			channelData[15] = datain[1];
 			break;
 	}
-	wdt_reset();
+	// wdt_reset();
 }
 
 void channelUpdater_2(uint8_t * datain) // if channel and store value
@@ -492,13 +451,14 @@ void channelUpdater_2(uint8_t * datain) // if channel and store value
 			channelData_2[15] = datain[1];
 			break;
 	}
-	wdt_reset();
+	// wdt_reset();
 }
 
+uint8_t volatile x = 0;
 
 void subRefresher() 
 {
-	uint8_t x = subRefresher_Counter;
+	x = subRefresher_Counter;
 	uint8_t tempVal[2];
 	switch(x){
 		case 0:
@@ -553,43 +513,7 @@ void subRefresher()
 			spiTransmitADC_2(tempVal,LTC1859_CH1);
 			channelUpdater_2(tempVal);
 			lastChannelAccessed_2 = LTC1859_CH1;
-			x++;		// change to x++ if I2C enabled, else x=15 to skip i2c package.
-			break;
-		case 9:
-			twiDataHandler(VDIG,TWIVOLT, tempVal);
-			channelData_i2c[0] = tempVal [0];
-			channelData_i2c[1] = tempVal [1];
-			x++;
-			break;
-		case 10:
-			twiDataHandler(VAPLUS,TWIVOLT, tempVal);
-			channelData_i2c[4] = tempVal [0];
-			channelData_i2c[5] = tempVal [1];
-			x++;
-			break;
-			case 11:
-			twiDataHandler(VAMINUS,TWIVOLT, tempVal);
-			channelData_i2c[8] = tempVal [0];
-			channelData_i2c[9] = tempVal [1];
-			x++;
-			break;
-		case 12:
-			twiDataHandler(VDIG,TWICURRENT, tempVal);
-			channelData_i2c[2] = tempVal [0];
-			channelData_i2c[3] = tempVal [1];
-			x++;
-			break;
-		case 13:
-			twiDataHandler(VAPLUS,TWICURRENT, tempVal);
-			channelData_i2c[6] = tempVal [0];
-			channelData_i2c[7] = tempVal [1];
-			x++;
-			break;
-		case 14:
-			twiDataHandler(VAMINUS,TWICURRENT, tempVal);
-			channelData_i2c[10] = tempVal [0];
-			channelData_i2c[11] = tempVal [1];
-			x++;
+			x = 15;		// change to x++ if I2C enabled, else x=15 to skip i2c package.
 			break;
 		case 15:
 			spiTransmitADC_2(tempVal,LTC1859_CH4);
@@ -605,14 +529,15 @@ void subRefresher()
 			break;
 	}
 	subRefresher_Counter = x;
-	wdt_reset();
+	// wdt_reset();
 }
 
+uint8_t volatile i = 0;
 
 void refresher() 
 {
-	uint8_t i = mainRefresher_Counter;
-	uint8_t tempAdc[2];
+    i = mainRefresher_Counter;
+	uint8_t  tempAdc[2];
 	switch(i){
 		case 2:
 			spiTransmitADC_1(tempAdc, LTC1859_CH2);
@@ -642,27 +567,26 @@ void refresher()
 			spiTransmitADC_1(tempAdc, LTC1859_CH6);
 			channelUpdater_1(tempAdc);
 			lastChannelAccessed = LTC1859_CH6;
-			i++;
+			i = 2;
 			break;
-		case 7: // SUBCOMM
+		case 7: 
 			 subRefresher();
-			//circular_buf_put(cbuf,0xEE);
-			//circular_buf_put(cbuf,0x99);
 			i = 2;
 			break;
 	}
 	
 	mainRefresher_Counter = i;
-	wdt_reset();
+	// wdt_reset();
 }
-
 
 
 
 int main(void)
 {
+	wdt_disable();
 	// watchdog_enable();
-
+	mcusr = MCUSR;
+	MCUSR = 0x00;
 	// Variable startups for ID and counters.
 	 subComm_Counter = 0;
 	 packetID = 0;
@@ -672,39 +596,24 @@ int main(void)
 	 crc16 = 0xFFFF;
 	 lastChannelAccessed = 0;
 	 lastChannelAccessed_2 = 0;
+	 tempData[0] = 0;
+	 tempData[1] = 0;
 	 //default value
-	 wdt_reset();
-	for (volatile int i = 0; i<16; i++)
+	 // wdt_reset();
+	for (volatile uint8_t i = 0; i<16; i++)
 	{
 		channelData[i] = 0xBB;
 		channelData_2[i] = 0xBB;
-		wdt_reset();
+		// wdt_reset();
 	}
-	for (volatile int i = 0; i<12; i++)
+	for (volatile uint8_t i = 0; i<12; i++)
 	{
 		channelData_i2c[i] = 0xBB;
-		wdt_reset();
+		// wdt_reset();
 	}
 	 
 	USART_Init();
 	Port_Init();
-	wdt_reset();
-	i2c_init();
-	// For testing one I2C channel
-#pragma region i2cTEST
-	 	//i2c_init();
-	 	//uint8_t twiTemp[2];
-	 	//while(1)
-	 	//{
-			//twiDataHandler(0xD2, TWICURRENT, twiTemp);
-		 	//UDR0 = twiTemp[0];
-		 	//while ( !( UCSR0A & (1<<UDRE0)) );
-		 	//UDR0 = twiTemp[1];
-		 	//while ( !( UCSR0A & (1<<UDRE0)) );
-		 	//_delay_ms(10);
-	 	//}
-		 
-#pragma endregion
 	spi_init_dac();
 	// Grid voltages
 	//// PCB1					   // (Grid#_bias_pcb#)
@@ -717,21 +626,7 @@ int main(void)
 	spiTransmitDAC_2((DAC_C<<4 | GB2>>8), (uint8_t)GB2);
 	
 	spi_init_adc();
-//	i2c_init();
-	//// For testing one ADC channel
-#pragma region TestADC
-	////uint8_t testData[2];
-	//while(1) 
-	//{
-		//spiTransmitADC_2(testData,LTC1859_CH1);
-		//UDR0 = 0x9C;
-		//while ( !( UCSR0A & (1<<UDRE0)) ){}
-		//UDR0 = testData[0];
-		//while ( !( UCSR0A & (1<<UDRE0)) ){}
-		//UDR0 = testData[1];
-		//while ( !( UCSR0A & (1<<UDRE0)) ){}
-	//}
-#pragma endregion	
+
 	sei(); // enable global interrupt - run after INITS
 	while(1)
 	{

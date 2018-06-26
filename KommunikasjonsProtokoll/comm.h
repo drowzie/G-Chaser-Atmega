@@ -56,18 +56,6 @@
 #define DAC_C							0x8
 #define DAC_D							0xC
 
-// LTC4151 Power monitor
-#define TWIVOLT							0x02
-#define TWICURRENT						0x00
-
-// I2C Devices
-#define	VDIG							0xD2
-#define VAPLUS							0xCE
-#define VAMINUS							0xDE
-
-
-enum State {Error, Success};
-
 //SPI functions
 void spi_init_dac();
 void watchdog_enable();
@@ -81,14 +69,4 @@ void spiTransmitADC_2(uint8_t * dataout, uint8_t datain);
 void spiTransmitDAC_1(uint8_t dacAdress, uint8_t dacData);
 void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData);
 
-//TWI/I2C functions.
-void i2c_init(void);
-void TWIStart(void);
-void TWIWrite(uint8_t u8data);
-uint8_t TWIReadACK(void);
-uint8_t TWIReadNACK(void);
-uint8_t TWIGetStatus(void);
-
-uint8_t PWMReadByte(uint8_t address, uint8_t reg, uint8_t* dataout);
-void twiDataHandler (uint8_t address, uint8_t reg, uint8_t* dataout);
 #endif /* COMM_H_ */
