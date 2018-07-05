@@ -8,7 +8,7 @@
  *\copyright GNU Public License.
  */
 
-#define version 0x0062
+#define version 0x0063
 
 /* Comments:
  * This C code is made for G-Chaser project on the "EL-BOKS" card, made by Erlend Restad.
@@ -338,7 +338,7 @@ ISR(USART0_UDRE_vect)
 					break;
 				case 34: // Version #
 					crc16 = _crc_xmodem_update(crc16, (version>>8));
-					UDR0 = version;
+					UDR0 = (version>>8);
 					subComm_Counter++;
 					packetID = 0;
 					break;
