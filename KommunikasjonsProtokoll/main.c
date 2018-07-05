@@ -567,7 +567,7 @@ void refresher()
 			spiTransmitADC_1(tempAdc, LTC1859_CH6);
 			channelUpdater_1(tempAdc);
 			lastChannelAccessed = LTC1859_CH6;
-			i = 2;
+			i++;
 			break;
 		case 7: 
 			 subRefresher();
