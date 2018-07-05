@@ -169,5 +169,3 @@ void spiTransmitDAC_2(uint8_t dacAdress, uint8_t dacData)
 
 
 // CH0: 0-1: CH1: 2-3 CH2: 4-5 CH3: 6-7 CH4: 8-9 CH5: 10-11CH6 12-13 CH7 14-15
-
-// I2C Vdig Volt: 0-1: Curr: 2-3 VAPLUS: Volt: 4-5 Curr: 6-7: Vaminus: Volt: 8-9: Curr: 10-11

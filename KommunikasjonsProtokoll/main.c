@@ -11,15 +11,35 @@
 #define version 0x0063
 
 /* Comments:
- * This C code is made for G-Chaser project on the "EL-BOKS" card, made by Erlend Restad.
- * It is possible to implement this software on a different microcontroller or same type
- * but it is highly recommended to change pins.
- * Commenting in this software is primarily made for the editors, possible future editors
- * and for easy understanding on the thesis. Requires prior knowledge or understanding of 
- * the datasheet for the ICs explained on the two lines below, and datasheet for Atmega328PB.
- * SPI Communication is made for the IC LTC1859(ADC) and DAC8420(DAC).
- * I2C Communication is made for the IC LTC4151.
- *
+ * Summary:
+ * Watchdog: Disabled
+ * SPI Communication: Working properly with ADC and DAC
+ * I2C: Disabled - slow speed and too little time to implement properly
+ * 
+ * Code summary:
+ * comm h file includes all the defines for communication and grid voltages
+ * Commm C file includes all the code for SPI with the DAC and ADC
+ * 
+ * Main.C:
+ * Data is stored in the variables defined below in their arrays.
+ * They are continously sampled and stored in their variables
+ * Stored like this inside channeldata and channeldata_2
+ * CH0: 0-1: CH1: 2-3 CH2: 4-5 CH3: 6-7 CH4: 8-9 CH5: 10-11CH6 12-13 CH7 14-15
+ * 
+ * Port Init: Sets up configs for the ports and their beginning state
+ *  Usart_Init: Setup config for UART and interrupt
+ *  ISR - Interrupt function/vector for UDRE interrupt
+ *  Channel updater: To properly store correct data for SPI, they are used to save the data
+ *  from the last communication in their correct place. Simply because of the way LTC1859 works
+ *  Refresher and Subrefresher, this is where the code works most of its time.
+ *  Basically: Communicate with the ADC and store their value in the variable inside channelupdaterr
+ *  
+ *  Main function:
+ *  The main functions beginning procedure is to set up the variables to their default values.
+ *  This is also for the channel data arrays. 
+ *  Init DAC to set up its correct communication.
+ *  Set gridvoltages after Grids in Comm.h
+ *  set up Init ADC and continously sample ADC data.
  */
 
 
@@ -43,6 +63,8 @@
 ////////////////////////////////////////////////////////
 //////////////////// Variables /////////////////////////
 ////////////////////////////////////////////////////////
+// I know everything is volatile, i had no idea what was causing a mischief in the code
+// To be on the "safe" side i used volatile to keep everything as it is in loops.
 
 uint8_t volatile mainComm_Counter; // Choose which packet to be sent out.
 uint8_t volatile subComm_Counter; // Choose which of the subcomms to be used and sent out.
@@ -59,7 +81,6 @@ uint8_t volatile lastChannelAccessed;
 uint8_t volatile lastChannelAccessed_2;
 uint8_t volatile tempData[3];
 
-uint8_t mcusr;
 
 
 void Port_Init()
@@ -101,7 +122,16 @@ void USART_Init()
 }
 
 
-// Interrupt handler
+/* Interrupt handler for UART UDRE VECT( REALLY INMPORTANT VECTOR)
+ * It will transmit in the packageformat desired.
+ * It will store sample data in a temp data so it won't update inbetween to keep correct data
+ * Maincomm counter will increase for the main comms.
+ * Update CRC for every byte in CRC-16 xmodem(Actually CCITT)
+ * Subcomm counter will increase inside the subcomm Switch
+ * PacketID is also increased in Subcomm.
+ * To cover SubComms 2 bytes, it will increase Maincomm counter on odd numbers in subcommcounter
+ */
+
 ISR(USART0_UDRE_vect)	
 {
 	switch(mainComm_Counter)
