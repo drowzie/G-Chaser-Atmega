@@ -8,7 +8,7 @@
  *\copyright GNU Public License.
  */
 
-#define version 0x58
+#define version 0x0062
 
 /* Comments:
  * This C code is made for G-Chaser project on the "EL-BOKS" card, made by Erlend Restad.
@@ -300,7 +300,7 @@ ISR(USART0_UDRE_vect)
 					crc16 = _crc_xmodem_update(crc16, tempData[0]);
 					UDR0 = tempData[0];
 					subComm_Counter++;
-					packetID = 16;
+					packetID++;
 					break;
 				case 17:
 					crc16 = _crc_xmodem_update(crc16, tempData[1]);
@@ -337,22 +337,17 @@ ISR(USART0_UDRE_vect)
 					mainComm_Counter++;
 					break;
 				case 34: // Version #
-					crc16 = _crc_xmodem_update(crc16, MCUSR);
-					UDR0 = mcusr;
+					crc16 = _crc_xmodem_update(crc16, (version>>8));
+					UDR0 = version;
 					subComm_Counter++;
 					packetID = 0;
 					break;
 				case 35:
-					crc16 = _crc_xmodem_update(crc16, version);
+					crc16 = _crc_xmodem_update(crc16, (uint8_t) version);
 					UDR0 = (uint8_t)version;
 					subComm_Counter = 0;
 					mainComm_Counter++;
 					break;
-				default:
-					subComm_Counter = 0;
-					mainComm_Counter = 0;
-					UDR0 = 0xBC;
-					crc16 = 0xFFFF;
 			}
 			break;
 		case 14: // CRC-1
@@ -364,11 +359,6 @@ ISR(USART0_UDRE_vect)
 			mainComm_Counter = 0;
 			crc16 = 0xFFFF;
 			break;
-		default:
-			mainComm_Counter = 0;
-			crc16 = 0xFFFF;
-			subComm_Counter = 0;
-			UDR0 = 0xBC;
 	}
 }
 
@@ -585,8 +575,6 @@ int main(void)
 {
 	wdt_disable();
 	// watchdog_enable();
-	mcusr = MCUSR;
-	MCUSR = 0x00;
 	// Variable startups for ID and counters.
 	 subComm_Counter = 0;
 	 packetID = 0;
